@@ -292,7 +292,7 @@ export default function CautioDashboard() {
       
       setDashboardData({
         totalResponses: "Sheet Access Error",
-        timeRange: "Unable to fetch live customer data - check sheet permissions",
+        timeRange: "Unable to fetch live data - check sheet permissions",
         topCities: [
           { name: "Bengaluru", count: 32, percentage: 32 },
           { name: "Hyderabad", count: 8, percentage: 8 },
@@ -548,18 +548,8 @@ export default function CautioDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip 
-                  formatter={(value, name, props) => [
-                    `${value} responses (${props.payload.percentage}% of total)`, 
-                    'Customer Inquiries from City'
-                  ]}
-                  labelFormatter={(label) => `City: ${label}`}
-                />
-                <Bar 
-                  dataKey="count" 
-                  fill="#3B82F6"
-                  name="City Distribution"
-                />
+                <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Responses']} />
+                <Bar dataKey="count" fill="#3B82F6" />
               </BarChart>
             </ResponsiveContainer>
           </div>
