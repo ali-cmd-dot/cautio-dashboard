@@ -11,11 +11,21 @@ export default function CautioDashboard() {
   // Simple sheet configuration
   const sourceSheetId = '1nQgbSdaZcwjPKciPCb_UW-J1iSBAVVMc8vEsSme2ip8';
 
+  // Robust fake email detection
+  const isFakeEmail = (email) => {
+    const cleanEmail = (email || '').trim().toLowerCase().replace(/"/g, '');
+    const fakeEmails = [
+      'faudev@fattudev.in',
+      'fattudev@fattudev.in'
+    ];
+    return fakeEmails.includes(cleanEmail);
+  };
+
   // Analyze data function
   const analyzeData = (rawData) => {
     const totalResponses = rawData.length;
     
-    console.log('Analyzing', totalResponses, 'responses');
+    console.log('Analyzing', totalResponses, 'responses (after filtering fake emails)');
     
     // City analysis
     const cityCount = {};
@@ -56,6 +66,7 @@ export default function CautioDashboard() {
     const countries = Object.entries(countryCount).map(([name, count]) => ({
       name,
       count,
+      percentage: Math.round((count / totalResponses) * 100),
       flag: name === 'India' ? '🇮🇳' : name === 'Italy' ? '🇮🇹' : name === 'Singapore' ? '🇸🇬' : 
             name === 'USA' ? '🇺🇸' : name === 'Canada' ? '🇨🇦' : '🏳️'
     }));
@@ -72,6 +83,7 @@ export default function CautioDashboard() {
     const queryTypes = Object.keys(queryCategories).map((type, index) => ({
       type,
       count: 0,
+      percentage: 0,
       color: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6B7280'][index]
     }));
 
@@ -89,6 +101,11 @@ export default function CautioDashboard() {
       if (!categorized) {
         queryTypes[4].count++;
       }
+    });
+
+    // Calculate percentages for query types
+    queryTypes.forEach(qt => {
+      qt.percentage = totalResponses > 0 ? Math.round((qt.count / totalResponses) * 100) : 0;
     });
 
     // Monthly analysis
@@ -126,7 +143,11 @@ export default function CautioDashboard() {
         priority: 'High'
       }));
 
-    console.log('Analysis complete - Cities:', Object.keys(cityCount), 'Countries:', Object.keys(countryCount));
+    console.log('Analysis complete:');
+    console.log('- Total valid responses:', totalResponses);
+    console.log('- Cities found:', Object.keys(cityCount).length);
+    console.log('- Countries found:', Object.keys(countryCount).length);
+    console.log('- Query types distribution:', queryTypes.map(qt => `${qt.type}: ${qt.count}`));
 
     return {
       totalResponses,
@@ -145,10 +166,10 @@ export default function CautioDashboard() {
       countries,
       keyInsights: [
         `${totalResponses} total valid responses (fake emails filtered out)`,
-        `${topCities[0]?.name || 'N/A'} is the top city with ${topCities[0]?.count || 0} responses`,
-        `${queryTypes[0]?.count || 0} purchase inquiries show strong buying intent`,
-        `${countries.length} countries represented`,
-        `${highValueLeads.length} high-value B2B leads identified`
+        `${topCities[0]?.name || 'N/A'} is the top city with ${topCities[0]?.count || 0} responses (${topCities[0]?.percentage || 0}%)`,
+        `${queryTypes[0]?.count || 0} purchase inquiries show strong buying intent (${queryTypes[0]?.percentage || 0}%)`,
+        `${countries.length} countries represented with ${countries[0]?.count || 0} responses from ${countries[0]?.name || 'top country'}`,
+        `${highValueLeads.length} high-value B2B leads identified for immediate follow-up`
       ],
       recentHighValueLeads: highValueLeads.length > 0 ? highValueLeads : [
         { name: "No B2B leads found", company: "Add more data to see leads", type: "N/A", priority: "Low" }
@@ -160,7 +181,7 @@ export default function CautioDashboard() {
   const fetchLiveData = async () => {
     setLoading(true);
     try {
-      console.log('Fetching data from Google Sheets...');
+      console.log('🔄 Fetching data from Google Sheets...');
       
       const csvUrl = `https://docs.google.com/spreadsheets/d/${sourceSheetId}/export?format=csv&gid=0`;
       const response = await fetch(csvUrl);
@@ -170,19 +191,25 @@ export default function CautioDashboard() {
       }
       
       const data = await response.text();
-      console.log('Raw data received, length:', data.length);
+      console.log('📊 Raw data received, length:', data.length);
       
       const lines = data.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
       
-      console.log('Headers detected:', headers);
+      console.log('📋 Headers detected:', headers);
       
       const rawData = [];
       const expectedHeaders = ['name', 'email', 'phone_number', 'query', 'vehicle_type', 'timestamp', 'language', 'ip_address', 'city', 'country', 'lat', 'long'];
       
+      let totalRowsProcessed = 0;
+      let fakeEmailsFiltered = 0;
+      let validRowsAdded = 0;
+
       for (let i = 1; i < lines.length; i++) {
+        totalRowsProcessed++;
         const line = lines[i];
         
+        // Better CSV parsing
         const values = [];
         let current = '';
         let inQuotes = false;
@@ -205,45 +232,61 @@ export default function CautioDashboard() {
           row[header] = values[index] || '';
         });
         
-        // Filter fake emails
-        if (row.email === 'faudev@fattudev.in' || row.email === 'fattudev@fattudev.in') {
-          console.log('Filtered fake email:', row.email);
+        // ROBUST FAKE EMAIL FILTERING - This is the main fix
+        const email = row.email || '';
+        if (isFakeEmail(email)) {
+          console.log('🚫 Filtered fake email:', email, '| Name:', row.name);
+          fakeEmailsFiltered++;
           continue;
         }
         
-        if (row.name && row.name.length > 1 && row.name !== 'name') {
+        // Additional validation
+        if (row.name && row.name.length > 1 && row.name !== 'name' && row.name.toLowerCase() !== 'name') {
           rawData.push(row);
+          validRowsAdded++;
         }
       }
       
-      console.log('Processed rows:', rawData.length);
-      console.log('Sample row:', rawData[0]);
+      console.log('📈 Processing Summary:');
+      console.log('- Total rows processed:', totalRowsProcessed);
+      console.log('- Fake emails filtered:', fakeEmailsFiltered);
+      console.log('- Valid rows added:', validRowsAdded);
+      console.log('- Final dataset size:', rawData.length);
       
-      // Debug: Check if any fake emails slipped through
-      const remainingFakeEmails = rawData.filter(row => {
-        const email = (row.email || '').trim().toLowerCase();
-        return email.includes('faudev@fattudev.in') || email.includes('fattudev@fattudev.in');
-      });
+      // Final verification - check if any fake emails remain
+      const remainingFakeEmails = rawData.filter(row => isFakeEmail(row.email));
       
       if (remainingFakeEmails.length > 0) {
         console.log('⚠️ WARNING: Fake emails still in data:', remainingFakeEmails.length);
-        remainingFakeEmails.forEach(row => {
-          console.log('Remaining fake email:', row.email, '| Name:', row.name);
+        remainingFakeEmails.forEach((row, index) => {
+          console.log(`Remaining fake email ${index + 1}:`, row.email, '| Name:', row.name);
         });
+        
+        // Remove them manually if they somehow got through
+        const cleanedData = rawData.filter(row => !isFakeEmail(row.email));
+        console.log('🧹 Manual cleanup: Removed', rawData.length - cleanedData.length, 'fake emails');
+        
+        if (cleanedData.length === 0) {
+          throw new Error('No valid data found after filtering');
+        }
+        
+        const analyzedData = analyzeData(cleanedData);
+        setDashboardData(analyzedData);
       } else {
-        console.log('✅ SUCCESS: All fake emails filtered out');
+        console.log('✅ SUCCESS: All fake emails filtered out successfully!');
+        
+        if (rawData.length === 0) {
+          throw new Error('No valid data found');
+        }
+        
+        const analyzedData = analyzeData(rawData);
+        setDashboardData(analyzedData);
       }
       
-      if (rawData.length === 0) {
-        throw new Error('No valid data found');
-      }
-      
-      const analyzedData = analyzeData(rawData);
-      setDashboardData(analyzedData);
       setLastUpdated(new Date().toLocaleString());
       
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('❌ Error fetching data:', error);
       
       setDashboardData({
         totalResponses: "Sheet Access Error",
@@ -254,8 +297,9 @@ export default function CautioDashboard() {
           { name: "Mumbai", count: 7, percentage: 7 }
         ],
         queryTypes: [
-          { type: "Purchase Inquiry", count: 45, color: "#3B82F6" },
-          { type: "Business Partnership", count: 18, color: "#10B981" }
+          { type: "Purchase Inquiry", count: 45, percentage: 65, color: "#3B82F6" },
+          { type: "Business Partnership", count: 18, percentage: 26, color: "#10B981" },
+          { type: "Others", count: 6, percentage: 9, color: "#6B7280" }
         ],
         monthlyTrend: [
           { month: 'Jul 2024', responses: 15 },
@@ -268,7 +312,8 @@ export default function CautioDashboard() {
           { week: 'Week 3', responses: 6 }
         ],
         countries: [
-          { name: "India", count: 96, flag: "🇮🇳" }
+          { name: "India", count: 96, percentage: 85, flag: "🇮🇳" },
+          { name: "USA", count: 8, percentage: 7, flag: "🇺🇸" }
         ],
         keyInsights: [
           "Unable to fetch live data from Google Sheets",
@@ -310,6 +355,7 @@ export default function CautioDashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading live data from Google Sheets...</p>
+          <p className="text-sm text-gray-500 mt-2">Filtering fake emails: faudev@fattudev.in, fattudev@fattudev.in</p>
         </div>
       </div>
     );
@@ -364,9 +410,9 @@ export default function CautioDashboard() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatCard icon={Users} title="Total Responses" value={dashboardData.totalResponses} subtitle="Live from Google Sheets" />
-            <StatCard icon={MessageSquare} title="Top City" value={dashboardData.topCities[0]?.name || 'N/A'} subtitle={`${dashboardData.topCities[0]?.count || 0} responses`} />
-            <StatCard icon={Globe} title="Countries" value={dashboardData.countries.length} subtitle="Including international" />
-            <StatCard icon={TrendingUp} title="Query Types" value={dashboardData.queryTypes.length} subtitle="Categories identified" />
+            <StatCard icon={MessageSquare} title="Top City" value={dashboardData.topCities[0]?.name || 'N/A'} subtitle={`${dashboardData.topCities[0]?.count || 0} responses (${dashboardData.topCities[0]?.percentage || 0}%)`} />
+            <StatCard icon={Globe} title="Countries" value={dashboardData.countries.length} subtitle={`${dashboardData.countries[0]?.count || 0} from top country`} />
+            <StatCard icon={TrendingUp} title="Query Types" value={dashboardData.queryTypes.length} subtitle={`${dashboardData.queryTypes[0]?.count || 0} purchase inquiries`} />
           </div>
 
           {/* Charts Row */}
@@ -383,13 +429,13 @@ export default function CautioDashboard() {
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="count"
-                    label={({ type, count }) => `${type}: ${count}`}
+                    label={({ type, count, percentage }) => `${type}: ${count} (${percentage}%)`}
                   >
                     {dashboardData.queryTypes.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, name]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -433,7 +479,7 @@ export default function CautioDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Responses']} />
                   <Bar dataKey="count" fill="#F59E0B" />
                 </BarChart>
               </ResponsiveContainer>
@@ -486,6 +532,7 @@ export default function CautioDashboard() {
                   <div className="text-2xl mb-2">{country.flag}</div>
                   <div className="font-semibold">{country.name}</div>
                   <div className="text-sm text-gray-600">{country.count} responses</div>
+                  <div className="text-xs text-gray-500">{country.percentage}% of total</div>
                 </div>
               ))}
             </div>
@@ -499,7 +546,7 @@ export default function CautioDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip />
+                <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Responses']} />
                 <Bar dataKey="count" fill="#3B82F6" />
               </BarChart>
             </ResponsiveContainer>
