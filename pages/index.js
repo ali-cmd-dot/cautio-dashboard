@@ -249,9 +249,7 @@ export default function CautioDashboard() {
       
       console.log('📈 Processing Summary:');
       console.log('- Total rows processed:', totalRowsProcessed);
-      console.log('- Invalid names filtered:', invalidNamesFiltered);
       console.log('- Fake emails filtered:', fakeEmailsFiltered);
-      console.log('- Empty rows filtered:', emptyRowsFiltered);
       console.log('- Valid rows added:', validRowsAdded);
       console.log('- Final dataset size:', rawData.length);
       
