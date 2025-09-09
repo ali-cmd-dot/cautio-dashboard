@@ -548,8 +548,18 @@ export default function CautioDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Responses']} />
-                <Bar dataKey="count" fill="#3B82F6" />
+                <Tooltip 
+                  formatter={(value, name, props) => [
+                    `${value} responses (${props.payload.percentage}% of total)`, 
+                    'Customer Inquiries from City'
+                  ]}
+                  labelFormatter={(label) => `City: ${label}`}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="#3B82F6"
+                  name="City Distribution"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
