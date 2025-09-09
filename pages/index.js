@@ -249,7 +249,9 @@ export default function CautioDashboard() {
       
       console.log('📈 Processing Summary:');
       console.log('- Total rows processed:', totalRowsProcessed);
+      console.log('- Invalid names filtered:', invalidNamesFiltered);
       console.log('- Fake emails filtered:', fakeEmailsFiltered);
+      console.log('- Empty rows filtered:', emptyRowsFiltered);
       console.log('- Valid rows added:', validRowsAdded);
       console.log('- Final dataset size:', rawData.length);
       
@@ -290,7 +292,7 @@ export default function CautioDashboard() {
       
       setDashboardData({
         totalResponses: "Sheet Access Error",
-        timeRange: "Unable to fetch live data - check sheet permissions",
+        timeRange: "Unable to fetch live customer data - check sheet permissions",
         topCities: [
           { name: "Bengaluru", count: 32, percentage: 32 },
           { name: "Hyderabad", count: 8, percentage: 8 },
