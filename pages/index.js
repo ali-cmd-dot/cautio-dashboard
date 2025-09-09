@@ -593,7 +593,15 @@ export default function CautioDashboard() {
                   dataKey="count" 
                   fill="#3B82F6"
                   name="City Distribution"
-                />
+                >
+                  <LabelList 
+                    dataKey="count" 
+                    position="right"
+                    formatter={(value, props) => `${value} (${props.percentage}%)`}
+                    fontSize={12}
+                    fill="#1E40AF"
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
