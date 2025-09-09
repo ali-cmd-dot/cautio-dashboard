@@ -151,7 +151,7 @@ export default function CautioDashboard() {
 
     return {
       totalResponses,
-      timeRange: "Live Data from Google Sheets (Fake emails filtered)",
+      timeRange: `Live Valid Customer Data (${totalResponses} responses after filtering)`,
       topCities,
       queryTypes: queryTypes.filter(qt => qt.count > 0),
       monthlyTrend: monthlyTrend.length > 0 ? monthlyTrend : [
@@ -165,7 +165,7 @@ export default function CautioDashboard() {
       ],
       countries,
       keyInsights: [
-        `${totalResponses} total valid responses (fake emails filtered out)`,
+        `${totalResponses} valid customer responses (after filtering fake emails & invalid data)`,
         `${topCities[0]?.name || 'N/A'} is the top city with ${topCities[0]?.count || 0} responses (${topCities[0]?.percentage || 0}%)`,
         `${queryTypes[0]?.count || 0} purchase inquiries show strong buying intent (${queryTypes[0]?.percentage || 0}%)`,
         `${countries.length} countries represented with ${countries[0]?.count || 0} responses from ${countries[0]?.name || 'top country'}`,
@@ -201,12 +201,12 @@ export default function CautioDashboard() {
       const rawData = [];
       const expectedHeaders = ['name', 'email', 'phone_number', 'query', 'vehicle_type', 'timestamp', 'language', 'ip_address', 'city', 'country', 'lat', 'long'];
       
-      let totalRowsProcessed = 0;
-      let fakeEmailsFiltered = 0;
-      let validRowsAdded = 0;
+      let totalProcessed = 0;
+      let fakeFiltered = 0;
+      let validAdded = 0;
 
       for (let i = 1; i < lines.length; i++) {
-        totalRowsProcessed++;
+        totalProcessed++;
         const line = lines[i];
         
         // Better CSV parsing
@@ -232,26 +232,31 @@ export default function CautioDashboard() {
           row[header] = values[index] || '';
         });
         
-        // ROBUST FAKE EMAIL FILTERING - This is the main fix
+        // Check if name column has valid data - MAIN FILTER
+        const name = (row.name || '').trim();
+        if (!name || name.length <= 1 || name.toLowerCase() === 'name') {
+          continue; // Skip rows without proper name data
+        }
+        
+        // Filter fake emails from 'email' column - SECONDARY FILTER
         const email = row.email || '';
         if (isFakeEmail(email)) {
           console.log('🚫 Filtered fake email:', email, '| Name:', row.name);
-          fakeEmailsFiltered++;
+          fakeFiltered++;
           continue;
         }
         
-        // Additional validation
-        if (row.name && row.name.length > 1 && row.name !== 'name' && row.name.toLowerCase() !== 'name') {
-          rawData.push(row);
-          validRowsAdded++;
-        }
+        // Add valid row
+        rawData.push(row);
+        validAdded++;
       }
       
       console.log('📈 Processing Summary:');
-      console.log('- Total rows processed:', totalRowsProcessed);
-      console.log('- Fake emails filtered:', fakeEmailsFiltered);
-      console.log('- Valid rows added:', validRowsAdded);
+      console.log('- Total rows processed:', totalProcessed);
+      console.log('- Fake emails filtered:', fakeFiltered);
+      console.log('- Valid rows added:', validAdded);
       console.log('- Final dataset size:', rawData.length);
+      console.log('🎯 FINAL VALID CUSTOMER COUNT:', rawData.length);
       
       // Final verification - check if any fake emails remain
       const remainingFakeEmails = rawData.filter(row => isFakeEmail(row.email));
@@ -290,7 +295,7 @@ export default function CautioDashboard() {
       
       setDashboardData({
         totalResponses: "Sheet Access Error",
-        timeRange: "Unable to fetch live data - check sheet permissions",
+        timeRange: "Unable to fetch live customer data - check sheet permissions",
         topCities: [
           { name: "Bengaluru", count: 32, percentage: 32 },
           { name: "Hyderabad", count: 8, percentage: 8 },
@@ -354,8 +359,8 @@ export default function CautioDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading live data from Google Sheets...</p>
-          <p className="text-sm text-gray-500 mt-2">Filtering fake emails: faudev@fattudev.in, fattudev@fattudev.in</p>
+          <p className="text-gray-600">Loading and filtering live customer data...</p>
+          <p className="text-sm text-gray-500 mt-2">Removing fake emails: faudev@fattudev.in, fattudev@fattudev.in</p>
         </div>
       </div>
     );
@@ -409,7 +414,7 @@ export default function CautioDashboard() {
         <div className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard icon={Users} title="Total Responses" value={dashboardData.totalResponses} subtitle="Live from Google Sheets" />
+            <StatCard icon={Users} title="Valid Customer Responses" value={dashboardData.totalResponses} subtitle="After filtering fake emails" />
             <StatCard icon={MessageSquare} title="Top City" value={dashboardData.topCities[0]?.name || 'N/A'} subtitle={`${dashboardData.topCities[0]?.count || 0} responses (${dashboardData.topCities[0]?.percentage || 0}%)`} />
             <StatCard icon={Globe} title="Countries" value={dashboardData.countries.length} subtitle={`${dashboardData.countries[0]?.count || 0} from top country`} />
             <StatCard icon={TrendingUp} title="Query Types" value={dashboardData.queryTypes.length} subtitle={`${dashboardData.queryTypes[0]?.count || 0} purchase inquiries`} />
@@ -430,12 +435,13 @@ export default function CautioDashboard() {
                     fill="#8884d8"
                     dataKey="count"
                     label={({ type, count, percentage }) => `${type}: ${count} (${percentage}%)`}
+                    labelLine={true}
                   >
                     {dashboardData.queryTypes.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, name]} />
+                  <Tooltip formatter={(value, name, props) => [`${value} responses (${props.payload.percentage}%)`, name]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -448,8 +454,18 @@ export default function CautioDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="responses" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} responses`, 'Customer Inquiries']}
+                    labelFormatter={(label) => `Month: ${label}`}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="responses" 
+                    stroke="#10B981" 
+                    fill="#10B981" 
+                    fillOpacity={0.3}
+                    name="Monthly Responses"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -465,8 +481,18 @@ export default function CautioDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" />
                   <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="responses" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} responses`, 'Weekly Customer Inquiries']}
+                    labelFormatter={(label) => `Period: ${label}`}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="responses" 
+                    stroke="#3B82F6" 
+                    fill="#3B82F6" 
+                    fillOpacity={0.3}
+                    name="Weekly Responses"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -479,8 +505,18 @@ export default function CautioDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Responses']} />
-                  <Bar dataKey="count" fill="#F59E0B" />
+                  <Tooltip 
+                    formatter={(value, name, props) => [
+                      `${value} responses (${props.payload.percentage}% of total)`, 
+                      'Customer Inquiries'
+                    ]}
+                    labelFormatter={(label) => `City: ${label}`}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="#F59E0B"
+                    name="City Responses"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -546,8 +582,18 @@ export default function CautioDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, 'Responses']} />
-                <Bar dataKey="count" fill="#3B82F6" />
+                <Tooltip 
+                  formatter={(value, name, props) => [
+                    `${value} responses (${props.payload.percentage}% of total)`, 
+                    'Customer Inquiries from City'
+                  ]}
+                  labelFormatter={(label) => `City: ${label}`}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="#3B82F6"
+                  name="City Distribution"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
