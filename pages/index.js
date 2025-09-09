@@ -217,6 +217,22 @@ export default function CautioDashboard() {
       }
       
       console.log('Processed rows:', rawData.length);
+      console.log('Sample row:', rawData[0]);
+      
+      // Debug: Check if any fake emails slipped through
+      const remainingFakeEmails = rawData.filter(row => {
+        const email = (row.email || '').trim().toLowerCase();
+        return email.includes('faudev@fattudev.in') || email.includes('fattudev@fattudev.in');
+      });
+      
+      if (remainingFakeEmails.length > 0) {
+        console.log('⚠️ WARNING: Fake emails still in data:', remainingFakeEmails.length);
+        remainingFakeEmails.forEach(row => {
+          console.log('Remaining fake email:', row.email, '| Name:', row.name);
+        });
+      } else {
+        console.log('✅ SUCCESS: All fake emails filtered out');
+      }
       
       if (rawData.length === 0) {
         throw new Error('No valid data found');
