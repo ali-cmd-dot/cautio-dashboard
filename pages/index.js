@@ -113,18 +113,30 @@ export default function CautioDashboard() {
       .slice(-8)
       .map(([week, responses]) => ({ week, responses }));
 
-    // Country analysis - clean up country codes
+    // Country analysis - STRICT VALIDATION
     const countryCount = {};
     rawData.forEach(row => {
-      let country = row.country || 'Unknown';
+      let country = row.country || '';
       
-      // Skip invalid entries
-      if (country !== 'Unknown' && 
-          country !== '' && 
-          country !== 'country' &&
-          !country.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && // Skip IP addresses
-          !country.match(/^\d+\.?\d*$/) && // Skip numbers
-          country.length > 0) {
+      // Clean country code/name
+      country = country.trim();
+      
+      // STRICT country validation - only allow valid country codes/names
+      const validCountries = ['IN', 'IT', 'SG', 'US', 'CA', 'India', 'Italy', 'Singapore', 'USA', 'Canada'];
+      const isValidCountry = country && 
+        country !== '' && 
+        country !== 'country' &&
+        country.length <= 15 &&
+        !country.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && // Not IP address
+        !country.match(/^\d+\.?\d*$/) && // Not numbers/coordinates
+        !country.match(/^\d{1,2}:\d{1,2}:\d{1,2}$/) && // Not timestamps
+        !country.match(/^-?\d+\.?\d*$/) && // Not coordinates
+        !country.includes('experiment') && // Not text fragments
+        !country.includes('@') && // Not email
+        !country.includes('http') && // Not URL
+        (validCountries.includes(country) || /^[A-Z]{2}$/.test(country) || /^[a-zA-Z\s]+$/.test(country));
+      
+      if (isValidCountry) {
         countryCount[country] = (countryCount[country] || 0) + 1;
       }
     });
@@ -137,8 +149,7 @@ export default function CautioDashboard() {
             name === 'US' ? '🇺🇸' : name === 'CA' ? '🇨🇦' : '🏳️'
     }));
 
-    console.log('Processed cities:', topCities);
-    console.log('Processed countries:', countries);
+    console.log('Valid countries found:', Object.keys(countryCount));
 
     // High value leads
     const highValueLeads = rawData
@@ -376,9 +387,26 @@ export default function CautioDashboard() {
               </ResponsiveContainer>
             </div>
 
+            {/* Monthly Trend - NEW */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold mb-4">📈 Monthly Response Trend</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={dashboardData.monthlyTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="responses" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Second Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Weekly Trend */}
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-semibold mb-4">📈 Weekly Response Trend</h3>
+              <h3 className="text-lg font-semibold mb-4">📊 Weekly Response Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={dashboardData.weeklyTrend}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -387,6 +415,20 @@ export default function CautioDashboard() {
                   <Tooltip />
                   <Area type="monotone" dataKey="responses" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
                 </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Top Cities Bar Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold mb-4">🏙️ Top Cities Distribution</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={dashboardData.topCities}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#F59E0B" />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
