@@ -113,11 +113,18 @@ export default function CautioDashboard() {
       .slice(-8)
       .map(([week, responses]) => ({ week, responses }));
 
-    // Country analysis
+    // Country analysis - clean up country codes
     const countryCount = {};
     rawData.forEach(row => {
-      const country = row.country || 'Unknown';
-      if (country !== 'Unknown' && country !== '' && country !== 'country') {
+      let country = row.country || 'Unknown';
+      
+      // Skip invalid entries
+      if (country !== 'Unknown' && 
+          country !== '' && 
+          country !== 'country' &&
+          !country.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && // Skip IP addresses
+          !country.match(/^\d+\.?\d*$/) && // Skip numbers
+          country.length > 0) {
         countryCount[country] = (countryCount[country] || 0) + 1;
       }
     });
@@ -129,6 +136,9 @@ export default function CautioDashboard() {
       flag: name === 'IN' ? '🇮🇳' : name === 'IT' ? '🇮🇹' : name === 'SG' ? '🇸🇬' : 
             name === 'US' ? '🇺🇸' : name === 'CA' ? '🇨🇦' : '🏳️'
     }));
+
+    console.log('Processed cities:', topCities);
+    console.log('Processed countries:', countries);
 
     // High value leads
     const highValueLeads = rawData
