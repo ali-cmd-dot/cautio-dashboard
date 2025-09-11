@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Users, MessageSquare, Globe, TrendingUp, RefreshCw, CheckCircle, Calendar, MapPin } from 'lucide-react';
+import { Users, MessageSquare, TrendingUp, RefreshCw, CheckCircle, Calendar, MapPin } from 'lucide-react';
 
 export default function CautioDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -9,6 +9,8 @@ export default function CautioDashboard() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [selectedQueryType, setSelectedQueryType] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const leadsPerPage = 20;
 
   // Simple sheet configuration
   const sourceSheetId = '1nQgbSdaZcwjPKciPCb_UW-J1iSBAVVMc8vEsSme2ip8';
@@ -153,7 +155,7 @@ export default function CautioDashboard() {
         monthKey: month
       }));
 
-    // All customer leads (latest first)
+    // All customer leads (latest first) - No slice limit
     const allLeads = rawData
       .map(row => ({
         name: row.name || 'N/A',
@@ -164,8 +166,7 @@ export default function CautioDashboard() {
         date: formatDate(row.timestamp),
         timestamp: row.timestamp
       }))
-      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-      .slice(0, 20); // Show latest 20 leads
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
     console.log('Analysis complete:');
     console.log('- Total valid responses:', totalResponses);
@@ -360,10 +361,10 @@ export default function CautioDashboard() {
     setCurrentPage(1);
   }, [selectedQueryType, selectedCity]);
 
-  const StatCard = ({ icon: Icon, title, value, subtitle, onClick, clickable = false }) => (
+  const StatCard = ({ icon: Icon, title, value, subtitle, onClick, clickable = false, description }) => (
     <div 
       className={`bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500 transition-all duration-200 ${
-        clickable ? 'cursor-pointer hover:shadow-lg hover:scale-105' : ''
+        clickable ? 'cursor-pointer hover:shadow-lg hover:scale-105 hover:border-blue-600' : ''
       }`}
       onClick={onClick}
     >
@@ -372,11 +373,12 @@ export default function CautioDashboard() {
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
           {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+          {description && <p className="text-xs text-blue-600 mt-1">{description}</p>}
         </div>
         <Icon className="h-8 w-8 text-blue-600" />
       </div>
       {clickable && (
-        <div className="mt-2 text-xs text-blue-600">Click to filter</div>
+        <div className="mt-2 text-xs text-blue-600 font-medium">👆 Click to explore</div>
       )}
     </div>
   );
@@ -387,6 +389,19 @@ export default function CautioDashboard() {
 
   const handleCityClick = (data) => {
     setSelectedCity(selectedCity === data.name ? null : data.name);
+  };
+
+  const handleAllResponsesClick = () => {
+    setSelectedQueryType(null);
+    setSelectedCity(null);
+    setCurrentPage(1);
+  };
+
+  const handleTopCitiesClick = () => {
+    setActiveTab('overview');
+    setTimeout(() => {
+      document.getElementById('cities-chart')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   if (!dashboardData) {
@@ -483,29 +498,46 @@ export default function CautioDashboard() {
               title="Total Responses" 
               value={dashboardData.totalResponses} 
               subtitle="Valid customer inquiries" 
+              description="View all customer data"
+              onClick={handleAllResponsesClick}
+              clickable={true}
             />
             <StatCard 
               icon={MessageSquare} 
               title="Query Types" 
               value={dashboardData.queryTypes.length} 
               subtitle={`${dashboardData.queryTypes[0]?.count || 0} purchase inquiries`}
+              description="Filter by inquiry type"
               onClick={() => handleQueryTypeClick(dashboardData.queryTypes[0])}
               clickable={true}
             />
             <StatCard 
-              icon={Globe} 
-              title="Geographic Reach" 
-              value={`${dashboardData.countries.length} Countries`} 
-              subtitle={`${dashboardData.topCities.length} cities active`}
+              icon={MapPin} 
+              title="Top Cities" 
+              value={`${dashboardData.topCities.length} Cities`} 
+              subtitle={`${dashboardData.topCities[0]?.name || 'N/A'} leads with ${dashboardData.topCities[0]?.count || 0}`}
+              description="Jump to cities analysis"
+              onClick={handleTopCitiesClick}
+              clickable={true}
             />
           </div>
 
           {/* Enhanced Monthly Trend */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-              Monthly Response Trend (Last 12 Months)
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center">
+                <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                Monthly Customer Response Analysis (Last 12 Months)
+              </h3>
+              <div className="text-sm text-gray-500">
+                Data shows customer inquiry trends over time
+              </div>
+            </div>
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-700">
+                📈 <strong>Trend Analysis:</strong> This chart displays monthly customer response patterns, helping identify peak periods, growth trends, and seasonal variations in customer interest.
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={400}>
               <AreaChart data={dashboardData.monthlyTrend}>
                 <defs>
@@ -522,9 +554,12 @@ export default function CautioDashboard() {
                   textAnchor="end"
                   height={60}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Number of Responses', angle: -90, position: 'insideLeft' }}
+                />
                 <Tooltip 
-                  formatter={(value, name) => [`${value} responses`, 'Monthly Customer Inquiries']}
+                  formatter={(value, name) => [`${value} customer inquiries`, 'Monthly Responses']}
                   labelFormatter={(label) => `Month: ${label}`}
                   contentStyle={{
                     backgroundColor: '#ffffff',
@@ -543,36 +578,45 @@ export default function CautioDashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="font-semibold text-gray-600">Total (12 months)</div>
-                <div className="text-lg font-bold text-blue-600">
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-blue-600 mb-1">Total Responses</div>
+                <div className="text-2xl font-bold text-blue-800">
                   {dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0)}
                 </div>
+                <div className="text-xs text-blue-600">Last 12 months</div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="font-semibold text-gray-600">Last 3 months</div>
-                <div className="text-lg font-bold text-green-600">
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-green-600 mb-1">Recent Quarter</div>
+                <div className="text-2xl font-bold text-green-800">
                   {dashboardData.monthlyTrend.slice(-3).reduce((sum, m) => sum + m.responses, 0)}
                 </div>
+                <div className="text-xs text-green-600">Last 3 months</div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="font-semibold text-gray-600">Peak Month</div>
-                <div className="text-lg font-bold text-purple-600">
+              <div className="bg-purple-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-purple-600 mb-1">Peak Performance</div>
+                <div className="text-2xl font-bold text-purple-800">
                   {Math.max(...dashboardData.monthlyTrend.map(m => m.responses))}
                 </div>
+                <div className="text-xs text-purple-600">Highest month</div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="font-semibold text-gray-600">Average/Month</div>
-                <div className="text-lg font-bold text-orange-600">
+              <div className="bg-orange-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-orange-600 mb-1">Monthly Average</div>
+                <div className="text-2xl font-bold text-orange-800">
                   {Math.round(dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0) / dashboardData.monthlyTrend.length)}
                 </div>
+                <div className="text-xs text-orange-600">Average per month</div>
               </div>
+            </div>
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                💡 <strong>Insight:</strong> Use this trend data to plan marketing campaigns, allocate resources, and predict future customer inquiry volumes.
+              </p>
             </div>
           </div>
 
           {/* Top Cities Bar Chart - Clickable */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div id="cities-chart" className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <MapPin className="h-5 w-5 mr-2 text-blue-600" />
               Top Cities Distribution (Click to filter)
@@ -621,7 +665,7 @@ export default function CautioDashboard() {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <Users className="h-5 w-5 mr-2 text-blue-600" />
-              Customer Leads (Latest First)
+              Customer Leads
               {(selectedQueryType || selectedCity) && (
                 <span className="ml-2 text-sm text-gray-500">- Filtered</span>
               )}
@@ -639,29 +683,99 @@ export default function CautioDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dashboardData.recentLeads
-                    .filter(lead => !selectedCity || lead.city === selectedCity)
-                    .slice(0, 15)
-                    .map((lead, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
-                      <td className="py-3 px-2 font-medium text-gray-900">{lead.name}</td>
-                      <td className="py-3 px-2 text-gray-600 text-sm">{lead.email}</td>
-                      <td className="py-3 px-2 text-gray-600 text-sm">{lead.phone_number}</td>
-                      <td className="py-3 px-2 text-gray-600 text-sm max-w-xs">{lead.query}</td>
-                      <td className="py-3 px-2 text-gray-600 text-sm">{lead.city}</td>
-                      <td className="py-3 px-2 text-gray-600 text-sm">{lead.date}</td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const filteredLeads = dashboardData.recentLeads.filter(lead => 
+                      (!selectedCity || lead.city === selectedCity) &&
+                      (!selectedQueryType || (lead.query && lead.query.toLowerCase().includes(selectedQueryType.toLowerCase())))
+                    );
+                    
+                    const startIndex = (currentPage - 1) * leadsPerPage;
+                    const endIndex = startIndex + leadsPerPage;
+                    const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+                    
+                    return (
+                      <>
+                        {paginatedLeads.map((lead, index) => (
+                          <tr key={startIndex + index} className="border-b hover:bg-gray-50 transition-colors">
+                            <td className="py-3 px-2 font-medium text-gray-900">{lead.name}</td>
+                            <td className="py-3 px-2 text-gray-600 text-sm">{lead.email}</td>
+                            <td className="py-3 px-2 text-gray-600 text-sm">{lead.phone_number}</td>
+                            <td className="py-3 px-2 text-gray-600 text-sm max-w-xs">{lead.query}</td>
+                            <td className="py-3 px-2 text-gray-600 text-sm">{lead.city}</td>
+                            <td className="py-3 px-2 text-gray-600 text-sm">{lead.date}</td>
+                          </tr>
+                        ))}
+                        {paginatedLeads.length === 0 && (
+                          <tr>
+                            <td colSpan="6" className="py-8 px-2 text-center text-gray-500">
+                              No leads found matching the current filters
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>
-            {dashboardData.recentLeads.length > 15 && (
-              <div className="mt-4 text-center">
-                <p className="text-sm text-gray-500">
-                  Showing latest 15 leads out of {dashboardData.recentLeads.length} total
-                </p>
-              </div>
-            )}
+            
+            {/* Pagination */}
+            {(() => {
+              const filteredLeads = dashboardData.recentLeads.filter(lead => 
+                (!selectedCity || lead.city === selectedCity) &&
+                (!selectedQueryType || (lead.query && lead.query.toLowerCase().includes(selectedQueryType.toLowerCase())))
+              );
+              const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
+              
+              if (totalPages <= 1) return null;
+              
+              return (
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Showing {Math.min((currentPage - 1) * leadsPerPage + 1, filteredLeads.length)} to {Math.min(currentPage * leadsPerPage, filteredLeads.length)} of {filteredLeads.length} leads
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex space-x-1">
+                      {[...Array(totalPages)].map((_, i) => {
+                        const page = i + 1;
+                        if (totalPages <= 7 || page === 1 || page === totalPages || (page >= currentPage - 2 && page <= currentPage + 2)) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`px-3 py-1 text-sm border rounded-md ${
+                                currentPage === page 
+                                  ? 'bg-blue-600 text-white border-blue-600' 
+                                  : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (page === currentPage - 3 || page === currentPage + 3) {
+                          return <span key={page} className="px-2 text-gray-400">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
