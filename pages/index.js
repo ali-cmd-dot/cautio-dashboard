@@ -40,49 +40,35 @@ export default function CautioDashboard() {
     return false;
   };
 
-  // EXTREMELY strict query validation to eliminate ALL gibberish
+  // Simple and permissive query validation - accept most real queries
   const isValidQuery = (query) => {
     if (!query || typeof query !== 'string') return false;
     
     const cleanQuery = query.trim();
     
-    // Must be at least 15 characters for meaningful query
-    if (cleanQuery.length < 15) return false;
+    // Must be at least 8 characters
+    if (cleanQuery.length < 8) return false;
     
-    // Reject if it's mostly gibberish patterns
-    const gibberishPatterns = [
-      /^[bcdfghjklmnpqrstvwxyz]{5,}/i, // Too many consonants
-      /^[a-z]{2,3}[a-z]{2,3}[a-z]{2,3}/i, // Repetitive patterns
-      /(.)\1{3,}/, // Same character repeated 4+ times
-      /^[^aeiou\s]{10,}/i, // 10+ characters without vowels
-      /^[a-z]{1,2}\s[a-z]{1,2}\s[a-z]{1,2}/i, // Single letter words
-      /hgfajjgvbjevv|hhfhisbsbv|dhhd|hdhvbdhh|dhbd|bbdnbdh|djndbvf|djsbdjdb/i, // Specific gibberish patterns
+    // Only block obvious system/test data - be very permissive
+    const invalidPatterns = [
+      /^test\s*$/i,
+      /^testing\s*$/i,
+      /^hello\s*$/i,
+      /^hi\s*$/i,
+      /^#ERROR!/i,
+      /^Private\s*$/i,
+      /^English\s*$/i,
+      /^\d+\s*$/,
     ];
     
-    // Check against gibberish patterns
-    for (const pattern of gibberishPatterns) {
+    // Only reject clear system data
+    for (const pattern of invalidPatterns) {
       if (pattern.test(cleanQuery)) {
-        console.log('🚫 BLOCKED GIBBERISH:', cleanQuery);
         return false;
       }
     }
     
-    // Must contain at least 50% vowels for natural language
-    const vowelCount = (cleanQuery.match(/[aeiouAEIOU\u0905-\u0914]/g) || []).length;
-    const totalLetters = (cleanQuery.match(/[a-zA-Z\u0900-\u097F]/g) || []).length;
-    if (totalLetters > 0 && vowelCount / totalLetters < 0.25) {
-      console.log('🚫 BLOCKED LOW VOWELS:', cleanQuery);
-      return false;
-    }
-    
-    // Must contain recognizable English/Hindi words
-    const validWords = /\b(dashcam|car|vehicle|buy|purchase|price|cost|need|want|interested|looking|business|partnership|job|work|help|support|installation|surveillance|hospital|solution|track|safety|understand|know|details|information|product|hello|hi|query|question|contact|service|maintenance|repair|warranty|fleet|rental|commercial|technical|device|setup|availability|retail|features|specifications|dual|channel|adas|dms|founder|team|members|initiative|attention|ceo|director|congratulations|great|creative|design|fabrication|consultation|stalls|event|presence|materials|services|seamless|precise|comprehensive|detailed)\b/i;
-    
-    if (!validWords.test(cleanQuery)) {
-      console.log('🚫 BLOCKED NO VALID WORDS:', cleanQuery);
-      return false;
-    }
-    
+    // Accept everything else - very permissive
     return true;
   };
 
@@ -782,18 +768,27 @@ export default function CautioDashboard() {
               </p>
             </div>
             
-            {/* Proper India Map Container */}
+            {/* PROPER FULL INDIA MAP - Tech/Digital Style like reference image */}
             <div className="relative w-full h-[700px] bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 rounded-xl overflow-hidden">
               
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 700">
                 <defs>
                   <linearGradient id="indiaConnectionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8"/>
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.4"/>
+                    <stop offset="0%" stopColor="#00ffff" stopOpacity="0.8"/>
+                    <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.6"/>
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.4"/>
                   </linearGradient>
                   
                   <filter id="indiaGlow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge> 
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                  
+                  <filter id="circuitGlow">
+                    <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
                     <feMerge> 
                       <feMergeNode in="coloredBlur"/>
                       <feMergeNode in="SourceGraphic"/>
@@ -801,124 +796,197 @@ export default function CautioDashboard() {
                   </filter>
                 </defs>
                 
-                {/* PROPER REAL INDIA MAP OUTLINE */}
-                <g className="opacity-30 fill-cyan-500 stroke-cyan-300" strokeWidth="2">
-                  {/* Main India outline - accurate shape */}
-                  <path d="M 380 120 
-                           L 420 110 L 460 105 L 500 100 L 540 105 L 580 110 L 620 120 L 660 135 L 690 155 L 710 180
-                           L 720 210 L 725 240 L 730 270 L 735 300 L 740 330 L 735 360 L 730 390 L 720 420 L 700 450
-                           L 675 480 L 645 505 L 610 525 L 570 540 L 530 550 L 490 555 L 450 550 L 410 540 L 375 525
-                           L 345 505 L 320 480 L 300 450 L 285 420 L 275 390 L 270 360 L 265 330 L 260 300 L 265 270
-                           L 270 240 L 280 210 L 295 180 L 315 155 L 340 135 L 365 125 Z" />
+                {/* COMPLETE DETAILED INDIA MAP OUTLINE - All states visible */}
+                <g className="fill-none stroke-cyan-300" strokeWidth="2" filter="url(#circuitGlow)">
                   
-                  {/* Kashmir region */}
-                  <path d="M 400 95 L 440 85 L 480 80 L 520 82 L 560 85 L 590 90 L 580 115 L 550 125 L 520 130 L 490 125 L 460 120 L 430 115 L 410 105 Z" />
+                  {/* MAIN INDIA BOUNDARY - Complete accurate outline */}
+                  <path d="M 200 150 
+                           L 240 140 L 280 135 L 320 130 L 360 128 L 400 125 L 440 123 L 480 120 L 520 118 L 560 120 L 600 125 L 640 130 L 680 140 L 720 155 L 750 175 L 775 200 L 790 230 L 800 265 L 805 300 L 800 335 L 790 370 L 775 400 L 750 430 L 720 455 L 685 480 L 645 500 L 600 515 L 555 525 L 510 530 L 465 525 L 420 515 L 380 500 L 345 480 L 315 455 L 290 430 L 270 400 L 255 370 L 245 335 L 240 300 L 245 265 L 255 230 L 270 200 L 290 175 L 315 155 L 345 140 Z" 
+                        stroke="#00ffff" strokeWidth="3" opacity="0.8"/>
                   
-                  {/* Northeast states - distinctive region */}
-                  <path d="M 680 200 L 720 195 L 750 200 L 770 210 L 780 230 L 775 250 L 765 270 L 750 285 L 730 290 L 710 285 L 695 275 L 685 260 L 680 245 L 680 225 Z" />
+                  {/* JAMMU & KASHMIR */}
+                  <path d="M 320 120 L 360 110 L 400 108 L 440 110 L 480 115 L 520 118 L 510 140 L 480 155 L 440 160 L 400 155 L 360 150 L 330 140 Z" 
+                        stroke="#00ffff" strokeWidth="2"/>
                   
-                  {/* Gujarat peninsula - western coast */}
-                  <path d="M 280 280 L 300 275 L 320 270 L 340 275 L 355 285 L 365 300 L 370 315 L 365 330 L 355 345 L 340 355 L 320 360 L 300 355 L 280 350 L 265 340 L 255 325 L 260 310 L 270 295 Z" />
+                  {/* HIMACHAL PRADESH */}
+                  <path d="M 360 150 L 400 145 L 440 148 L 480 150 L 470 170 L 440 180 L 400 175 L 370 170 Z" 
+                        stroke="#00d4ff" strokeWidth="2"/>
                   
-                  {/* Southern peninsula - distinctive triangular shape */}
-                  <path d="M 400 450 L 440 445 L 480 440 L 520 435 L 560 440 L 595 450 L 620 470 L 635 495 L 640 520 L 635 545 L 620 565 L 595 580 L 565 590 L 530 595 L 495 590 L 465 580 L 440 565 L 420 545 L 415 520 L 420 495 L 435 470 Z" />
+                  {/* PUNJAB */}
+                  <path d="M 320 155 L 360 150 L 370 170 L 340 180 L 320 175 Z" 
+                        stroke="#00d4ff" strokeWidth="2"/>
                   
-                  {/* Andaman & Nicobar Islands */}
-                  <path d="M 680 450 L 685 455 L 690 460 L 685 465 L 680 460 Z" />
-                  <path d="M 675 480 L 680 485 L 685 490 L 680 495 L 675 490 Z" />
-                  <path d="M 670 510 L 675 515 L 680 520 L 675 525 L 670 520 Z" />
+                  {/* HARYANA */}
+                  <path d="M 370 170 L 400 175 L 420 180 L 410 195 L 380 200 L 370 190 Z" 
+                        stroke="#00d4ff" strokeWidth="2"/>
                   
-                  {/* Lakshadweep Islands */}
-                  <path d="M 200 400 L 205 405 L 210 410 L 205 415 L 200 410 Z" />
-                  <path d="M 195 430 L 200 435 L 205 440 L 200 445 L 195 440 Z" />
+                  {/* DELHI */}
+                  <circle cx="380" cy="185" r="8" stroke="#ff0080" strokeWidth="3" fill="none"/>
                   
-                  {/* Goa region - small coastal indent */}
-                  <path d="M 320 380 L 335 375 L 350 380 L 345 395 L 330 400 L 320 395 Z" />
+                  {/* UTTARAKHAND */}
+                  <path d="M 420 150 L 460 148 L 480 150 L 470 170 L 440 175 L 420 170 Z" 
+                        stroke="#00d4ff" strokeWidth="2"/>
                   
-                  {/* Kerala coast - southwestern coast */}
-                  <path d="M 360 480 L 370 475 L 380 480 L 385 495 L 380 510 L 370 515 L 360 510 L 355 495 Z" />
+                  {/* UTTAR PRADESH */}
+                  <path d="M 380 200 L 440 195 L 500 200 L 540 205 L 530 240 L 480 245 L 420 240 L 380 235 Z" 
+                        stroke="#0099ff" strokeWidth="2"/>
                   
-                  {/* Tamil Nadu coast - southeastern tip */}
-                  <path d="M 520 540 L 535 535 L 550 540 L 555 555 L 550 570 L 535 575 L 520 570 L 515 555 Z" />
+                  {/* BIHAR */}
+                  <path d="M 540 205 L 590 210 L 620 215 L 610 240 L 570 245 L 540 240 Z" 
+                        stroke="#0099ff" strokeWidth="2"/>
                   
-                  {/* Odisha coast - eastern coast indent */}
-                  <path d="M 650 350 L 665 345 L 680 350 L 675 365 L 660 370 L 650 365 Z" />
+                  {/* WEST BENGAL */}
+                  <path d="M 620 215 L 670 225 L 690 240 L 685 270 L 650 280 L 620 270 L 610 240 Z" 
+                        stroke="#0099ff" strokeWidth="2"/>
                   
-                  {/* West Bengal coast - Ganges delta */}
-                  <path d="M 680 320 L 695 315 L 710 320 L 705 335 L 690 340 L 680 335 Z" />
+                  {/* JHARKHAND */}
+                  <path d="M 570 245 L 610 240 L 620 270 L 580 280 L 560 270 Z" 
+                        stroke="#0099ff" strokeWidth="2"/>
+                  
+                  {/* ODISHA */}
+                  <path d="M 620 270 L 650 280 L 670 300 L 660 330 L 630 340 L 600 330 L 590 300 Z" 
+                        stroke="#0099ff" strokeWidth="2"/>
+                  
+                  {/* CHHATTISGARH */}
+                  <path d="M 480 280 L 530 275 L 560 280 L 550 310 L 510 315 L 480 310 Z" 
+                        stroke="#0066ff" strokeWidth="2"/>
+                  
+                  {/* MADHYA PRADESH */}
+                  <path d="M 380 235 L 480 245 L 530 240 L 480 280 L 420 290 L 380 280 L 360 260 Z" 
+                        stroke="#0066ff" strokeWidth="2"/>
+                  
+                  {/* RAJASTHAN */}
+                  <path d="M 280 180 L 360 170 L 380 200 L 360 260 L 320 280 L 280 270 L 260 230 Z" 
+                        stroke="#3366ff" strokeWidth="2"/>
+                  
+                  {/* GUJARAT */}
+                  <path d="M 260 270 L 320 280 L 340 320 L 320 360 L 280 380 L 240 370 L 220 340 L 230 300 Z" 
+                        stroke="#3366ff" strokeWidth="2"/>
+                  
+                  {/* MAHARASHTRA */}
+                  <path d="M 340 320 L 420 315 L 480 320 L 470 370 L 420 380 L 370 375 L 340 350 Z" 
+                        stroke="#6633ff" strokeWidth="2"/>
+                  
+                  {/* GOA */}
+                  <path d="M 340 375 L 360 370 L 370 385 L 350 390 Z" 
+                        stroke="#6633ff" strokeWidth="2"/>
+                  
+                  {/* KARNATAKA */}
+                  <path d="M 370 375 L 470 370 L 520 380 L 510 430 L 460 440 L 410 435 L 370 425 Z" 
+                        stroke="#9933ff" strokeWidth="2"/>
+                  
+                  {/* ANDHRA PRADESH */}
+                  <path d="M 520 320 L 590 315 L 620 330 L 610 380 L 560 390 L 520 380 Z" 
+                        stroke="#9933ff" strokeWidth="2"/>
+                  
+                  {/* TELANGANA */}
+                  <path d="M 480 320 L 520 320 L 520 360 L 480 365 Z" 
+                        stroke="#9933ff" strokeWidth="2"/>
+                  
+                  {/* TAMIL NADU */}
+                  <path d="M 460 440 L 520 435 L 560 445 L 570 485 L 530 500 L 480 495 L 450 480 Z" 
+                        stroke="#cc33ff" strokeWidth="2"/>
+                  
+                  {/* KERALA */}
+                  <path d="M 410 435 L 460 440 L 450 480 L 420 500 L 390 485 L 400 450 Z" 
+                        stroke="#cc33ff" strokeWidth="2"/>
+                  
+                  {/* NORTHEAST STATES */}
+                  <path d="M 690 225 L 740 220 L 770 230 L 780 250 L 775 280 L 750 300 L 720 290 L 690 275 Z" 
+                        stroke="#ff3399" strokeWidth="2"/>
+                  
+                  {/* Circuit board patterns within India */}
+                  <g stroke="#00ffff" strokeWidth="1" opacity="0.3">
+                    {/* Horizontal circuit lines */}
+                    <line x1="250" y1="200" x2="750" y2="200"/>
+                    <line x1="270" y1="250" x2="720" y2="250"/>
+                    <line x1="290" y1="300" x2="700" y2="300"/>
+                    <line x1="310" y1="350" x2="680" y2="350"/>
+                    <line x1="330" y1="400" x2="650" y2="400"/>
+                    <line x1="370" y1="450" x2="600" y2="450"/>
+                    
+                    {/* Vertical circuit lines */}
+                    <line x1="350" y1="150" x2="350" y2="500"/>
+                    <line x1="400" y1="140" x2="400" y2="520"/>
+                    <line x1="450" y1="130" x2="450" y2="510"/>
+                    <line x1="500" y1="135" x2="500" y2="515"/>
+                    <line x1="550" y1="140" x2="550" y2="500"/>
+                    <line x1="600" y1="150" x2="600" y2="480"/>
+                    <line x1="650" y1="170" x2="650" y2="450"/>
+                  </g>
+                  
+                  {/* Circuit nodes/intersections */}
+                  <g fill="#00ffff" opacity="0.6">
+                    <circle cx="350" cy="200" r="3"/>
+                    <circle cx="400" cy="250" r="3"/>
+                    <circle cx="450" cy="200" r="3"/>
+                    <circle cx="500" cy="300" r="3"/>
+                    <circle cx="550" cy="250" r="3"/>
+                    <circle cx="600" cy="350" r="3"/>
+                    <circle cx="650" cy="300" r="3"/>
+                  </g>
                 </g>
 
                 {/* City Data with Proper India Coordinates */}
                 {dashboardData.allCities && dashboardData.allCities.map((city, index) => {
-                  // Real India coordinates mapped to SVG positions
                   let x = 500, y = 350; // Default center position
                   
-                  // Major Indian cities positioned accurately on India map
+                  // Accurate positioning for major Indian cities
                   switch(city.name.toLowerCase()) {
                     case 'bengaluru':
                     case 'bangalore':
-                      x = 540; y = 480; break; // South India
+                      x = 460; y = 420; break;
                     case 'mumbai':
-                      x = 350; y = 350; break; // West coast
+                      x = 360; y = 360; break;
                     case 'delhi':
                     case 'new delhi':
-                      x = 470; y = 240; break; // North India
+                      x = 380; y = 185; break;
                     case 'hyderabad':
-                      x = 520; y = 420; break; // South-central
+                      x = 500; y = 360; break;
                     case 'chennai':
-                      x = 580; y = 500; break; // Southeast coast
+                      x = 520; y = 470; break;
                     case 'kolkata':
-                      x = 630; y = 340; break; // East India
+                      x = 650; y = 250; break;
                     case 'pune':
-                      x = 360; y = 370; break; // Maharashtra
+                      x = 390; y = 360; break;
                     case 'ahmedabad':
-                      x = 320; y = 300; break; // Gujarat
+                      x = 300; y = 320; break;
                     case 'surat':
-                      x = 330; y = 320; break; // Gujarat coast
+                      x = 310; y = 340; break;
                     case 'jaipur':
-                      x = 420; y = 270; break; // Rajasthan
+                      x = 340; y = 220; break;
                     case 'lucknow':
-                      x = 510; y = 280; break; // UP
+                      x = 460; y = 220; break;
                     case 'kanpur':
-                      x = 520; y = 285; break; // UP
+                      x = 450; y = 230; break;
                     case 'nagpur':
-                      x = 480; y = 360; break; // Central India
+                      x = 480; y = 300; break;
                     case 'indore':
-                      x = 430; y = 340; break; // MP
+                      x = 420; y = 280; break;
                     case 'bhopal':
-                      x = 450; y = 335; break; // MP
+                      x = 440; y = 275; break;
                     case 'visakhapatnam':
-                      x = 590; y = 380; break; // Andhra coast
+                      x = 580; y = 360; break;
                     case 'patna':
-                      x = 590; y = 310; break; // Bihar
+                      x = 580; y = 225; break;
                     case 'kochi':
-                    case 'cochin':
-                      x = 500; y = 540; break; // Kerala coast
+                      x = 400; y = 470; break;
                     case 'coimbatore':
-                      x = 530; y = 520; break; // Tamil Nadu
-                    case 'gurgaon':
-                    case 'gurugram':
-                      x = 475; y = 245; break; // Near Delhi
-                    case 'noida':
-                      x = 480; y = 242; break; // Near Delhi
-                    case 'ghaziabad':
-                      x = 485; y = 240; break; // Near Delhi
-                    case 'faridabad':
-                      x = 475; y = 250; break; // Near Delhi
+                      x = 460; y = 460; break;
                     default:
-                      // Distribute other cities around India randomly but within bounds
-                      x = 300 + (index * 47) % 400;
-                      y = 200 + (index * 31) % 300;
+                      // Place other cities within proper India bounds
+                      x = 300 + (index * 23) % 350;
+                      y = 180 + (index * 19) % 300;
                   }
 
                   const isHQ = city.name.toLowerCase().includes('bengaluru') || city.name.toLowerCase().includes('bangalore');
                   
                   return (
                     <g key={city.name}>
-                      {/* Connection line from Bangalore to each city */}
+                      {/* Glowing connection lines */}
                       {!isHQ && (
                         <line
-                          x1="540" y1="480" // Bangalore position
+                          x1="460" y1="420" // Bangalore HQ
                           x2={x} y2={y}
                           stroke="url(#indiaConnectionGradient)"
                           strokeWidth="2"
@@ -927,50 +995,62 @@ export default function CautioDashboard() {
                         />
                       )}
                       
-                      {/* City node */}
+                      {/* City nodes with glow effects */}
                       <g 
                         className="cursor-pointer"
                         onClick={() => handleCityClick(city)}
                       >
-                        {/* City circle */}
+                        {/* Outer glow ring */}
                         <circle
                           cx={x}
                           cy={y}
-                          r={isHQ ? 20 : Math.max(6, Math.min(16, city.count * 1.8))}
-                          fill={selectedCity === city.name ? "#ef4444" : isHQ ? "#10b981" : "#3b82f6"}
+                          r={isHQ ? 35 : Math.max(12, Math.min(25, city.count * 2))}
+                          fill="none"
+                          stroke={selectedCity === city.name ? "#ff0080" : isHQ ? "#00ff00" : "#00ffff"}
+                          strokeWidth="1"
+                          opacity="0.3"
+                          className={isHQ ? "animate-ping" : ""}
+                        />
+                        
+                        {/* Main city circle */}
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={isHQ ? 18 : Math.max(6, Math.min(15, city.count * 1.5))}
+                          fill={selectedCity === city.name ? "#ff0080" : isHQ ? "#00ff00" : "#00ffff"}
                           stroke="#ffffff"
-                          strokeWidth={isHQ ? 3 : 2}
+                          strokeWidth="2"
                           filter="url(#indiaGlow)"
                           className={isHQ ? "animate-pulse" : ""}
                         />
                         
-                        {/* Response count inside circle */}
+                        {/* Response count */}
                         <text
                           x={x}
-                          y={y + 3}
+                          y={y + 4}
                           textAnchor="middle"
-                          className="fill-white text-xs font-bold pointer-events-none"
+                          className="fill-black text-xs font-bold pointer-events-none"
                         >
                           {city.count}
                         </text>
                         
-                        {/* City name above circle */}
+                        {/* City name */}
                         <text
                           x={x}
-                          y={y - (isHQ ? 20 : Math.max(6, Math.min(16, city.count * 1.8))) - 5}
+                          y={y - (isHQ ? 18 : Math.max(6, Math.min(15, city.count * 1.5))) - 8}
                           textAnchor="middle"
                           className={`text-sm font-bold pointer-events-none ${
-                            selectedCity === city.name ? 'fill-red-300' : 
-                            isHQ ? 'fill-green-300' : 'fill-blue-300'
+                            selectedCity === city.name ? 'fill-pink-300' : 
+                            isHQ ? 'fill-green-300' : 'fill-cyan-300'
                           }`}
                         >
                           {city.name}
                         </text>
                         
-                        {/* Percentage below circle */}
+                        {/* Percentage */}
                         <text
                           x={x}
-                          y={y + (isHQ ? 20 : Math.max(6, Math.min(16, city.count * 1.8))) + 15}
+                          y={y + (isHQ ? 18 : Math.max(6, Math.min(15, city.count * 1.5))) + 15}
                           textAnchor="middle"
                           className="fill-gray-300 text-xs pointer-events-none"
                         >
@@ -979,77 +1059,35 @@ export default function CautioDashboard() {
                         
                         {/* HQ indicator */}
                         {isHQ && (
-                          <>
-                            <circle
-                              cx={x}
-                              cy={y}
-                              r="30"
-                              fill="none"
-                              stroke="#10b981"
-                              strokeWidth="1"
-                              strokeDasharray="5,3"
-                              opacity="0.6"
-                            >
-                              <animateTransform
-                                attributeName="transform"
-                                attributeType="XML"
-                                type="rotate"
-                                from={`0 ${x} ${y}`}
-                                to={`360 ${x} ${y}`}
-                                dur="15s"
-                                repeatCount="indefinite"
-                              />
-                            </circle>
-                            <text
-                              x={x}
-                              y={y - 35}
-                              textAnchor="middle"
-                              className="fill-green-200 text-xs font-bold pointer-events-none"
-                            >
-                              HQ
-                            </text>
-                          </>
+                          <text
+                            x={x}
+                            y={y - 35}
+                            textAnchor="middle"
+                            className="fill-green-200 text-sm font-bold pointer-events-none"
+                          >
+                            HQ
+                          </text>
                         )}
                       </g>
                     </g>
                   );
                 })}
-                
-                {/* Animated particles */}
-                <g className="opacity-40">
-                  {[...Array(25)].map((_, i) => (
-                    <circle
-                      key={i}
-                      cx={300 + Math.random() * 400}
-                      cy={150 + Math.random() * 400}
-                      r={Math.random() * 1.5 + 0.5}
-                      fill="#60a5fa"
-                    >
-                      <animate
-                        attributeName="opacity"
-                        values="0;1;0"
-                        dur={`${2 + Math.random() * 4}s`}
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  ))}
-                </g>
               </svg>
               
-              {/* Legend */}
-              <div className="absolute bottom-6 right-6 bg-slate-800 bg-opacity-95 p-4 rounded-xl text-white border border-blue-400">
+              {/* Enhanced Legend */}
+              <div className="absolute bottom-6 right-6 bg-slate-900 bg-opacity-95 p-4 rounded-xl text-white border border-cyan-400">
                 <h4 className="text-sm font-bold mb-3 text-cyan-300">India Network Legend</h4>
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center space-x-3">
-                    <div className="w-5 h-5 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-                    <span>HQ - Bangalore ({dashboardData.topCities.find(c => c.name.toLowerCase().includes('bengaluru') || c.name.toLowerCase().includes('bangalore'))?.count || 0})</span>
+                    <div className="w-5 h-5 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                    <span>HQ - Bangalore</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full border border-white"></div>
+                    <div className="w-3 h-3 bg-cyan-400 rounded-full border border-white"></div>
                     <span>Response cities</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-red-500 rounded-full border border-white"></div>
+                    <div className="w-3 h-3 bg-pink-400 rounded-full border border-white"></div>
                     <span>Selected city</span>
                   </div>
                 </div>
@@ -1057,18 +1095,14 @@ export default function CautioDashboard() {
                   <div className="text-xs text-cyan-300 font-bold">
                     Total: {dashboardData.totalResponses} responses
                   </div>
-                  <div className="text-xs text-gray-400">
-                    Cities: {dashboardData.allCities.length}
-                  </div>
                 </div>
               </div>
               
               {/* Instructions */}
-              <div className="absolute top-6 left-6 bg-slate-800 bg-opacity-95 p-4 rounded-xl text-white border border-green-400">
-                <p className="text-sm font-bold text-green-300">🇮🇳 India Response Network</p>
-                <p className="text-xs text-gray-300 mt-1">All {dashboardData.allCities.length} cities with response counts</p>
-                <p className="text-xs text-blue-300 mt-1">Click any city to filter responses</p>
-                <p className="text-xs text-yellow-300 mt-1">Total matches: {dashboardData.totalResponses} responses</p>
+              <div className="absolute top-6 left-6 bg-slate-900 bg-opacity-95 p-4 rounded-xl text-white border border-green-400">
+                <p className="text-sm font-bold text-green-300">🇮🇳 Digital India Network</p>
+                <p className="text-xs text-gray-300 mt-1">Complete India map with all states</p>
+                <p className="text-xs text-cyan-300 mt-1">Click any city to filter responses</p>
               </div>
             </div>
           </div>
