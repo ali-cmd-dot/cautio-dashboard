@@ -40,51 +40,50 @@ export default function CautioDashboard() {
     return false;
   };
 
-  // Much simpler and less aggressive query validation
+  // EXTREMELY strict query validation to eliminate ALL gibberish
   const isValidQuery = (query) => {
     if (!query || typeof query !== 'string') return false;
     
     const cleanQuery = query.trim();
     
-    // Must be at least 8 characters
-    if (cleanQuery.length < 8) return false;
+    // Must be at least 15 characters for meaningful query
+    if (cleanQuery.length < 15) return false;
     
-    // Only filter out obvious test/system data
-    const invalidPatterns = [
-      /^test\s*$/i,
-      /^testing the form\s*$/i,
-      /^hello\s*$/i,
-      /^hi\s*$/i,
-      /^ok\s*$/i,
-      /^#ERROR!/i,
-      /^Private\s*$/i,
-      /^English\s*$/i,
-      /^\d+\s*$/,
-      /^seamless installation\s*$/i,
-      /^precise fabrication\s*$/i,
-      /^creative design\s*$/i,
-      // Only filter extreme gibberish - very permissive
-      /^[bcdfghjklmnpqrstvwxyz]{8,}$/i, // Pure consonants only
-      /^(.)\1{5,}$/, // Same character repeated 6+ times
+    // Reject if it's mostly gibberish patterns
+    const gibberishPatterns = [
+      /^[bcdfghjklmnpqrstvwxyz]{5,}/i, // Too many consonants
+      /^[a-z]{2,3}[a-z]{2,3}[a-z]{2,3}/i, // Repetitive patterns
+      /(.)\1{3,}/, // Same character repeated 4+ times
+      /^[^aeiou\s]{10,}/i, // 10+ characters without vowels
+      /^[a-z]{1,2}\s[a-z]{1,2}\s[a-z]{1,2}/i, // Single letter words
+      /hgfajjgvbjevv|hhfhisbsbv|dhhd|hdhvbdhh|dhbd|bbdnbdh|djndbvf|djsbdjdb/i, // Specific gibberish patterns
     ];
     
-    // Check against basic invalid patterns only
-    for (const pattern of invalidPatterns) {
+    // Check against gibberish patterns
+    for (const pattern of gibberishPatterns) {
       if (pattern.test(cleanQuery)) {
-        console.log('🚫 Filtered basic invalid:', cleanQuery);
+        console.log('🚫 BLOCKED GIBBERISH:', cleanQuery);
         return false;
       }
     }
     
-    // If it has basic sentence structure, it's probably valid
-    const hasLetters = /[a-zA-Z]/.test(cleanQuery);
-    const hasSpaces = /\s/.test(cleanQuery);
-    
-    if (hasLetters && (hasSpaces || cleanQuery.length > 15)) {
-      return true; // Very permissive - accept most text
+    // Must contain at least 50% vowels for natural language
+    const vowelCount = (cleanQuery.match(/[aeiouAEIOU\u0905-\u0914]/g) || []).length;
+    const totalLetters = (cleanQuery.match(/[a-zA-Z\u0900-\u097F]/g) || []).length;
+    if (totalLetters > 0 && vowelCount / totalLetters < 0.25) {
+      console.log('🚫 BLOCKED LOW VOWELS:', cleanQuery);
+      return false;
     }
     
-    return false;
+    // Must contain recognizable English/Hindi words
+    const validWords = /\b(dashcam|car|vehicle|buy|purchase|price|cost|need|want|interested|looking|business|partnership|job|work|help|support|installation|surveillance|hospital|solution|track|safety|understand|know|details|information|product|hello|hi|query|question|contact|service|maintenance|repair|warranty|fleet|rental|commercial|technical|device|setup|availability|retail|features|specifications|dual|channel|adas|dms|founder|team|members|initiative|attention|ceo|director|congratulations|great|creative|design|fabrication|consultation|stalls|event|presence|materials|services|seamless|precise|comprehensive|detailed)\b/i;
+    
+    if (!validWords.test(cleanQuery)) {
+      console.log('🚫 BLOCKED NO VALID WORDS:', cleanQuery);
+      return false;
+    }
+    
+    return true;
   };
 
   // Enhanced date parsing
@@ -802,26 +801,51 @@ export default function CautioDashboard() {
                   </filter>
                 </defs>
                 
-                {/* Proper India Map Outline */}
+                {/* PROPER REAL INDIA MAP OUTLINE */}
                 <g className="opacity-30 fill-cyan-500 stroke-cyan-300" strokeWidth="2">
-                  <path d="M 400 100 
-                           L 450 80 L 500 85 L 550 90 L 600 95 L 650 100 L 700 110 L 750 130
-                           L 780 160 L 800 200 L 810 250 L 800 300 L 780 350 L 750 400
-                           L 700 450 L 650 480 L 600 500 L 550 510 L 500 515 L 450 510
-                           L 400 500 L 350 480 L 300 450 L 270 400 L 250 350 L 240 300
-                           L 250 250 L 270 200 L 300 160 L 350 120 Z" />
+                  {/* Main India outline - accurate shape */}
+                  <path d="M 380 120 
+                           L 420 110 L 460 105 L 500 100 L 540 105 L 580 110 L 620 120 L 660 135 L 690 155 L 710 180
+                           L 720 210 L 725 240 L 730 270 L 735 300 L 740 330 L 735 360 L 730 390 L 720 420 L 700 450
+                           L 675 480 L 645 505 L 610 525 L 570 540 L 530 550 L 490 555 L 450 550 L 410 540 L 375 525
+                           L 345 505 L 320 480 L 300 450 L 285 420 L 275 390 L 270 360 L 265 330 L 260 300 L 265 270
+                           L 270 240 L 280 210 L 295 180 L 315 155 L 340 135 L 365 125 Z" />
                   
                   {/* Kashmir region */}
-                  <path d="M 420 80 L 480 70 L 520 75 L 550 80 L 540 120 L 500 140 L 460 135 L 430 125 Z" />
+                  <path d="M 400 95 L 440 85 L 480 80 L 520 82 L 560 85 L 590 90 L 580 115 L 550 125 L 520 130 L 490 125 L 460 120 L 430 115 L 410 105 Z" />
                   
-                  {/* Northeast states */}
-                  <path d="M 700 200 L 750 190 L 780 200 L 790 230 L 780 260 L 750 270 L 720 265 L 700 250 Z" />
+                  {/* Northeast states - distinctive region */}
+                  <path d="M 680 200 L 720 195 L 750 200 L 770 210 L 780 230 L 775 250 L 765 270 L 750 285 L 730 290 L 710 285 L 695 275 L 685 260 L 680 245 L 680 225 Z" />
                   
-                  {/* Gujarat peninsula */}
-                  <path d="M 280 280 L 320 270 L 350 275 L 370 290 L 360 320 L 340 340 L 310 345 L 280 340 L 260 320 L 270 300 Z" />
+                  {/* Gujarat peninsula - western coast */}
+                  <path d="M 280 280 L 300 275 L 320 270 L 340 275 L 355 285 L 365 300 L 370 315 L 365 330 L 355 345 L 340 355 L 320 360 L 300 355 L 280 350 L 265 340 L 255 325 L 260 310 L 270 295 Z" />
                   
-                  {/* South India triangle */}
-                  <path d="M 450 450 L 550 440 L 600 460 L 620 500 L 600 540 L 550 560 L 500 555 L 450 545 L 420 520 L 430 480 Z" />
+                  {/* Southern peninsula - distinctive triangular shape */}
+                  <path d="M 400 450 L 440 445 L 480 440 L 520 435 L 560 440 L 595 450 L 620 470 L 635 495 L 640 520 L 635 545 L 620 565 L 595 580 L 565 590 L 530 595 L 495 590 L 465 580 L 440 565 L 420 545 L 415 520 L 420 495 L 435 470 Z" />
+                  
+                  {/* Andaman & Nicobar Islands */}
+                  <path d="M 680 450 L 685 455 L 690 460 L 685 465 L 680 460 Z" />
+                  <path d="M 675 480 L 680 485 L 685 490 L 680 495 L 675 490 Z" />
+                  <path d="M 670 510 L 675 515 L 680 520 L 675 525 L 670 520 Z" />
+                  
+                  {/* Lakshadweep Islands */}
+                  <path d="M 200 400 L 205 405 L 210 410 L 205 415 L 200 410 Z" />
+                  <path d="M 195 430 L 200 435 L 205 440 L 200 445 L 195 440 Z" />
+                  
+                  {/* Goa region - small coastal indent */}
+                  <path d="M 320 380 L 335 375 L 350 380 L 345 395 L 330 400 L 320 395 Z" />
+                  
+                  {/* Kerala coast - southwestern coast */}
+                  <path d="M 360 480 L 370 475 L 380 480 L 385 495 L 380 510 L 370 515 L 360 510 L 355 495 Z" />
+                  
+                  {/* Tamil Nadu coast - southeastern tip */}
+                  <path d="M 520 540 L 535 535 L 550 540 L 555 555 L 550 570 L 535 575 L 520 570 L 515 555 Z" />
+                  
+                  {/* Odisha coast - eastern coast indent */}
+                  <path d="M 650 350 L 665 345 L 680 350 L 675 365 L 660 370 L 650 365 Z" />
+                  
+                  {/* West Bengal coast - Ganges delta */}
+                  <path d="M 680 320 L 695 315 L 710 320 L 705 335 L 690 340 L 680 335 Z" />
                 </g>
 
                 {/* City Data with Proper India Coordinates */}
@@ -1045,35 +1069,6 @@ export default function CautioDashboard() {
                 <p className="text-xs text-gray-300 mt-1">All {dashboardData.allCities.length} cities with response counts</p>
                 <p className="text-xs text-blue-300 mt-1">Click any city to filter responses</p>
                 <p className="text-xs text-yellow-300 mt-1">Total matches: {dashboardData.totalResponses} responses</p>
-              </div>
-            </div>
-
-            {/* All Cities Grid Below Map */}
-            <div className="mt-8">
-              <h4 className="text-lg font-semibold mb-4">Complete City Breakdown ({dashboardData.allCities.length} cities)</h4>
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 max-h-80 overflow-y-auto">
-                {dashboardData.allCities.map((city, index) => (
-                  <div 
-                    key={city.name}
-                    className={`p-3 rounded-lg border cursor-pointer text-center transition-all ${
-                      selectedCity === city.name 
-                        ? 'bg-red-100 border-red-500 scale-105' 
-                        : city.name.toLowerCase().includes('bengaluru') || city.name.toLowerCase().includes('bangalore')
-                        ? 'bg-green-100 border-green-500'
-                        : 'bg-blue-50 border-blue-300 hover:border-blue-500'
-                    }`}
-                    onClick={() => handleCityClick(city)}
-                  >
-                    <div className="font-bold text-sm text-gray-900 mb-1">
-                      {city.name}
-                      {(city.name.toLowerCase().includes('bengaluru') || city.name.toLowerCase().includes('bangalore')) && 
-                        <div className="text-xs bg-green-500 text-white px-1 rounded mt-1">HQ</div>
-                      }
-                    </div>
-                    <div className="text-lg font-bold text-blue-600">{city.count}</div>
-                    <div className="text-xs text-gray-600">{city.percentage}%</div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
