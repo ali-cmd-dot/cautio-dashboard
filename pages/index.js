@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, LineChart, Line, ComposedChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, LineChart, Line, ComposedChart, ScatterChart, Scatter } from 'recharts';
 import { Users, MessageSquare, TrendingUp, RefreshCw, CheckCircle, Calendar, MapPin, X, Eye, ShoppingCart, Globe } from 'lucide-react';
 
 export default function CautioDashboard() {
@@ -40,74 +40,51 @@ export default function CautioDashboard() {
     return false;
   };
 
-  // Enhanced query validation to filter out gibberish
+  // Much simpler and less aggressive query validation
   const isValidQuery = (query) => {
     if (!query || typeof query !== 'string') return false;
     
     const cleanQuery = query.trim();
     
-    // Must be at least 10 characters for meaningful query
-    if (cleanQuery.length < 10) return false;
+    // Must be at least 8 characters
+    if (cleanQuery.length < 8) return false;
     
-    // Filter out gibberish patterns
-    const gibberishPatterns = [
+    // Only filter out obvious test/system data
+    const invalidPatterns = [
       /^test\s*$/i,
-      /^testing\s*$/i,
+      /^testing the form\s*$/i,
       /^hello\s*$/i,
       /^hi\s*$/i,
+      /^ok\s*$/i,
       /^#ERROR!/i,
       /^Private\s*$/i,
       /^English\s*$/i,
-      /^Testing the form\s*$/i,
       /^\d+\s*$/,
       /^seamless installation\s*$/i,
       /^precise fabrication\s*$/i,
       /^creative design\s*$/i,
-      // Gibberish patterns - too many repeated characters or random letter combinations
-      /^[bcdfghjklmnpqrstvwxyz]{4,}/i, // Too many consonants in a row
-      /^[aeiou]{4,}/i, // Too many vowels in a row  
-      /(.)\1{3,}/, // Same character repeated 4+ times
-      /^[a-z]{1,2}\s[a-z]{1,2}\s/i, // Single/double letter words
-      /^[bcdghkmnpqrstvwxyz]+\s[bcdghkmnpqrstvwxyz]+/i, // Consonant-only words
-      /^[^aeiou\s]{8,}/i, // 8+ characters without vowels
-      /[bcdfghjklmnpqrstvwxyz]{5,}/i, // 5+ consecutive consonants
-      /^[a-z]{2,3}[a-z]{2,3}[a-z]{2,3}/i, // Repetitive pattern like "bbdnbdh"
+      // Only filter extreme gibberish - very permissive
+      /^[bcdfghjklmnpqrstvwxyz]{8,}$/i, // Pure consonants only
+      /^(.)\1{5,}$/, // Same character repeated 6+ times
     ];
     
-    // Check against gibberish patterns
-    for (const pattern of gibberishPatterns) {
+    // Check against basic invalid patterns only
+    for (const pattern of invalidPatterns) {
       if (pattern.test(cleanQuery)) {
-        console.log('🚫 Filtered gibberish:', cleanQuery);
+        console.log('🚫 Filtered basic invalid:', cleanQuery);
         return false;
       }
     }
     
-    // Must contain meaningful English/Hindi words
-    const words = cleanQuery.split(/\s+/).filter(word => word.length >= 3);
-    if (words.length < 3) return false;
+    // If it has basic sentence structure, it's probably valid
+    const hasLetters = /[a-zA-Z]/.test(cleanQuery);
+    const hasSpaces = /\s/.test(cleanQuery);
     
-    // Check for vowel distribution - real words have vowels
-    const vowelCount = (cleanQuery.match(/[aeiouAEIOU\u0905-\u0914]/g) || []).length;
-    const totalLetters = (cleanQuery.match(/[a-zA-Z\u0900-\u097F]/g) || []).length;
-    if (totalLetters > 0 && vowelCount / totalLetters < 0.15) { // Less than 15% vowels = likely gibberish
-      console.log('🚫 Filtered low vowel ratio:', cleanQuery);
-      return false;
+    if (hasLetters && (hasSpaces || cleanQuery.length > 15)) {
+      return true; // Very permissive - accept most text
     }
     
-    // Check for actual sentences with proper structure
-    const hasQuestionWords = /\b(what|how|when|where|why|can|could|would|will|need|want|looking|interested|buy|purchase|price|cost|dashcam|camera|car|vehicle)\b/i.test(cleanQuery);
-    const hasProperSentence = cleanQuery.includes('?') || cleanQuery.includes('.') || hasQuestionWords;
-    
-    if (!hasProperSentence) return false;
-    
-    // Final check - must contain at least one recognizable English/business word
-    const businessWords = /\b(buy|purchase|price|cost|need|want|interested|looking|dashcam|camera|car|vehicle|business|partnership|job|work|help|support|inquiry|question|please|can|how|what|when|where)\b/i;
-    if (!businessWords.test(cleanQuery)) {
-      console.log('🚫 No recognizable business words:', cleanQuery);
-      return false;
-    }
-    
-    return true;
+    return false;
   };
 
   // Enhanced date parsing
@@ -436,19 +413,16 @@ export default function CautioDashboard() {
           row[mappedHeader] = values[index] || '';
         });
         
-        // Enhanced validation - stricter checking
+        // Much simpler validation - only skip obvious invalid data
         const name = (row.name || '').trim();
         const email = (row.email || '').trim();
         const query = (row.query || '').trim();
         
-        // Skip invalid entries with stricter validation
+        // Skip only clear invalid entries
         if (!name || name.length <= 2 || name.toLowerCase() === 'name') continue;
         if (isFakeEmail(email)) continue;
-        if (!isValidQuery(query)) continue;
-        
-        // Additional check - if name looks valid but query is gibberish, skip
-        if (name.length > 2 && !isValidQuery(query)) {
-          console.log('🚫 Valid name but invalid query:', name, '|', query.substring(0, 50));
+        if (!isValidQuery(query)) {
+          console.log('🚫 Skipped invalid query:', query.substring(0, 50));
           continue;
         }
         
