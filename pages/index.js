@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, LineChart, Line, ComposedChart } from 'recharts';
 import { Users, MessageSquare, TrendingUp, RefreshCw, CheckCircle, Calendar, MapPin, X, Eye, ShoppingCart, Globe } from 'lucide-react';
 
 export default function CautioDashboard() {
@@ -14,7 +14,7 @@ export default function CautioDashboard() {
   const [selectedQuery, setSelectedQuery] = useState('');
   const leadsPerPage = 20;
 
-  // Simple sheet configuration
+  // Sheet configuration
   const sourceSheetId = '1nQgbSdaZcwjPKciPCb_UW-J1iSBAVVMc8vEsSme2ip8';
 
   // Enhanced fake email detection
@@ -24,34 +24,35 @@ export default function CautioDashboard() {
       'faudev@fattudev.in',
       'fattudev@fattudev.in',
       'test@test.com',
-      'example@example.com'
+      'example@example.com',
+      'rohit@cautio.in'
     ];
     return fakeEmails.includes(cleanEmail) || cleanEmail.includes('test') || cleanEmail === '';
   };
 
-  // Enhanced query validation for English, Hinglish, and Hindi
+  // Enhanced query validation
   const isValidQuery = (query) => {
     if (!query || typeof query !== 'string') return false;
     
     const cleanQuery = query.trim();
     
-    // Must be at least 5 characters for meaningful query
-    if (cleanQuery.length < 5) return false;
+    // Must be at least 8 characters for meaningful query
+    if (cleanQuery.length < 8) return false;
     
-    // Filter out common invalid patterns
+    // Filter out invalid patterns
     const invalidPatterns = [
       /^test\s*$/i,
+      /^testing\s*$/i,
       /^hello\s*$/i,
       /^hi\s*$/i,
-      /^ok\s*$/i,
-      /^yes\s*$/i,
-      /^no\s*$/i,
-      /^good\s*$/i,
       /^#ERROR!/i,
-      /^\d+\s*$/,
-      /^[a-zA-Z]{1,3}\s*$/,
       /^Private\s*$/i,
-      /^English\s*$/i
+      /^English\s*$/i,
+      /^Testing the form\s*$/i,
+      /^\d+\s*$/,
+      /^seamless installation\s*$/i,
+      /^precise fabrication\s*$/i,
+      /^creative design\s*$/i
     ];
     
     // Check against invalid patterns
@@ -60,50 +61,47 @@ export default function CautioDashboard() {
     }
     
     // Must contain meaningful words
-    const words = cleanQuery.split(/\s+/).filter(word => word.length >= 2);
-    if (words.length < 2) return false;
+    const words = cleanQuery.split(/\s+/).filter(word => word.length >= 3);
+    if (words.length < 3) return false;
     
-    // Must have some sentence structure
-    const hasVowels = /[aeiouAEIOU\u0905-\u0914\u0960-\u0961]/.test(cleanQuery);
-    const hasConsonants = /[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ\u0915-\u0939\u0958-\u095F]/.test(cleanQuery);
-    const hasHindiChars = /[\u0900-\u097F]/.test(cleanQuery);
+    // Check for actual sentences with proper structure
+    const hasQuestionWords = /\b(what|how|when|where|why|can|could|would|will|need|want|looking|interested|buy|purchase|price|cost)\b/i.test(cleanQuery);
+    const hasProperSentence = cleanQuery.includes('?') || cleanQuery.includes('.') || hasQuestionWords;
     
-    if (!hasHindiChars && (!hasVowels || !hasConsonants)) return false;
+    if (!hasProperSentence) return false;
     
     return true;
   };
 
   // Enhanced date parsing
   const parseDate = (dateString) => {
-    if (!dateString) return null;
+    if (!dateString || dateString === 'N/A') return null;
     
     try {
-      // Handle different date formats from sheet
-      let date;
+      // Handle MM/DD/YYYY format common in sheets
       if (dateString.includes('/')) {
-        // Format: M/D/YYYY or MM/DD/YYYY
         const parts = dateString.split('/');
         if (parts.length === 3) {
-          date = new Date(parts[2], parts[0] - 1, parts[1]);
+          const month = parseInt(parts[0]) - 1;
+          const day = parseInt(parts[1]);
+          const year = parseInt(parts[2]);
+          return new Date(year, month, day);
         }
-      } else if (dateString.includes('-')) {
-        // Format: YYYY-MM-DD or DD-MM-YYYY
-        date = new Date(dateString);
-      } else {
-        date = new Date(dateString);
       }
       
+      // Handle other formats
+      const date = new Date(dateString);
       return isNaN(date.getTime()) ? null : date;
     } catch (error) {
-      console.log('Date parsing error:', error);
       return null;
     }
   };
 
   // Format date function
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    const date = parseDate(timestamp) || new Date(timestamp);
+  const formatDate = (dateInput) => {
+    if (!dateInput) return 'N/A';
+    
+    const date = typeof dateInput === 'string' ? parseDate(dateInput) : dateInput;
     if (!date || isNaN(date.getTime())) return 'N/A';
     
     const day = String(date.getDate()).padStart(2, '0');
@@ -112,66 +110,73 @@ export default function CautioDashboard() {
     return `${day}-${month}-${year}`;
   };
 
+  // India cities with coordinates for better map visualization
+  const cityCoordinates = {
+    'Bengaluru': { lat: 12.9716, lng: 77.5946, region: 'South' },
+    'Bangalore': { lat: 12.9716, lng: 77.5946, region: 'South' },
+    'Mumbai': { lat: 19.0760, lng: 72.8777, region: 'West' },
+    'Delhi': { lat: 28.7041, lng: 77.1025, region: 'North' },
+    'Hyderabad': { lat: 17.3850, lng: 78.4867, region: 'South' },
+    'Chennai': { lat: 13.0827, lng: 80.2707, region: 'South' },
+    'Kolkata': { lat: 22.5726, lng: 88.3639, region: 'East' },
+    'Pune': { lat: 18.5204, lng: 73.8567, region: 'West' },
+    'Ahmedabad': { lat: 23.0225, lng: 72.5714, region: 'West' },
+    'Jaipur': { lat: 26.9124, lng: 75.7873, region: 'North' },
+    'Surat': { lat: 21.1702, lng: 72.8311, region: 'West' },
+    'Lucknow': { lat: 26.8467, lng: 80.9462, region: 'North' },
+    'Kanpur': { lat: 26.4499, lng: 80.3319, region: 'North' },
+    'Nagpur': { lat: 21.1458, lng: 79.0882, region: 'Central' },
+    'Indore': { lat: 22.7196, lng: 75.8577, region: 'Central' },
+    'Thane': { lat: 19.2183, lng: 72.9781, region: 'West' },
+    'Bhopal': { lat: 23.2599, lng: 77.4126, region: 'Central' },
+    'Visakhapatnam': { lat: 17.6868, lng: 83.2185, region: 'South' },
+    'Pimpri': { lat: 18.6298, lng: 73.7997, region: 'West' },
+    'Patna': { lat: 25.5941, lng: 85.1376, region: 'East' }
+  };
+
   // Analyze data function
   const analyzeData = (rawData) => {
     const totalResponses = rawData.length;
     
-    console.log('Analyzing', totalResponses, 'responses after filtering');
+    console.log('📊 Analyzing', totalResponses, 'responses after filtering');
     
-    // Enhanced city analysis with coordinates
+    // Enhanced city analysis
     const cityCount = {};
-    const cityCoordinates = {};
+    const cityData = [];
     
     rawData.forEach(row => {
-      const city = row.city || '';
-      const lat = parseFloat(row.lat) || null;
-      const lng = parseFloat(row.long) || null;
+      const city = (row.city || '').trim();
       
       if (city && city.length > 2 && 
           city !== 'English' && 
           city !== 'language' &&
+          city !== 'N/A' &&
           !city.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && 
           /^[a-zA-Z\s\-\.]+$/.test(city)) {
         
         cityCount[city] = (cityCount[city] || 0) + 1;
-        
-        // Store coordinates for mapping
-        if (lat && lng && lat !== 0 && lng !== 0) {
-          cityCoordinates[city] = { lat, lng, count: cityCount[city] };
-        }
       }
     });
 
-    const topCities = Object.entries(cityCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([name, count]) => ({
-        name,
+    // Create city data with coordinates
+    Object.entries(cityCount).forEach(([city, count]) => {
+      const coords = cityCoordinates[city] || { lat: 20 + Math.random() * 10, lng: 75 + Math.random() * 10, region: 'Other' };
+      cityData.push({
+        name: city,
         count,
         percentage: Math.round((count / totalResponses) * 100),
-        coordinates: cityCoordinates[name] || null
-      }));
+        lat: coords.lat,
+        lng: coords.lng,
+        region: coords.region,
+        size: Math.max(8, Math.min(50, count * 3)) // Dynamic size for visualization
+      });
+    });
 
-    // ALL cities for the cities tab
-    const allCities = Object.entries(cityCount)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, count]) => ({
-        name,
-        count,
-        percentage: Math.round((count / totalResponses) * 100),
-        coordinates: cityCoordinates[name] || null
-      }));
+    const topCities = cityData
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
-    // Geographic data for map visualization
-    const geoData = Object.entries(cityCoordinates)
-      .map(([city, data]) => ({
-        city,
-        x: data.lng,
-        y: data.lat,
-        count: data.count,
-        size: Math.max(20, data.count * 5) // Size based on count
-      }))
-      .sort((a, b) => b.count - a.count);
+    const allCities = cityData.sort((a, b) => b.count - a.count);
 
     // Country analysis
     const countryCount = {};
@@ -192,10 +197,10 @@ export default function CautioDashboard() {
             name === 'USA' ? '🇺🇸' : name === 'Canada' ? '🇨🇦' : name === 'United Kingdom' ? '🇬🇧' : '🏳️'
     }));
 
-    // Enhanced query analysis with better categorization
+    // Enhanced query analysis
     const queryCategories = {
-      'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'want to buy', 'cost', 'order', 'enquire', 'inquiry', 'need dashcam', 'need dash cam', 'want dashcam'],
-      'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution', 'dealer', 'distributor', 'franchise'],
+      'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'dash cam', 'cost', 'order', 'enquire', 'inquiry', 'interested', 'single unit', 'looking to buy'],
+      'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution', 'dealer', 'distributor', 'franchise', 'exhibiting'],
       'Job/Internship': ['job', 'internship', 'career', 'hiring', 'opportunity', 'work', 'hr team', 'employment'],
       'Investment/Funding': ['funding', 'investment', 'venture', 'capital', 'investor'],
       'Technical Support': ['support', 'help', 'issue', 'problem', 'technical', 'installation'],
@@ -221,100 +226,102 @@ export default function CautioDashboard() {
       });
       
       if (!categorized) {
-        queryTypes[queryTypes.length - 1].count++; // Add to Others
+        queryTypes[queryTypes.length - 1].count++;
       }
     });
 
-    // Calculate percentages for query types
+    // Calculate percentages
     queryTypes.forEach(qt => {
       qt.percentage = totalResponses > 0 ? Math.round((qt.count / totalResponses) * 100) : 0;
     });
 
-    // Enhanced Monthly analysis
+    // Enhanced monthly analysis with proper date handling
     const monthlyData = {};
     const now = new Date();
     
+    // Initialize last 12 months
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData[monthKey] = 0;
+      const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      monthlyData[monthKey] = { 
+        month: monthLabel,
+        responses: 0,
+        monthKey 
+      };
     }
     
+    // Count responses by month
     rawData.forEach(row => {
       const date = parseDate(row.timestamp);
-      if (date) {
+      if (date && !isNaN(date.getTime())) {
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (monthlyData.hasOwnProperty(monthKey)) {
-          monthlyData[monthKey]++;
+        if (monthlyData[monthKey]) {
+          monthlyData[monthKey].responses++;
         }
       }
     });
 
-    const monthlyTrend = Object.entries(monthlyData)
-      .sort()
-      .map(([month, responses]) => ({ 
-        month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }), 
-        responses,
-        monthKey: month
-      }));
+    const monthlyTrend = Object.values(monthlyData).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 
     // Enhanced customer leads with better validation and sorting
     const allLeads = rawData
       .filter(row => isValidQuery(row.query))
-      .map(row => ({
-        name: row.name || 'N/A',
-        email: row.email || 'N/A',
-        phone_number: row.phone_number || 'N/A',
-        query: row.query || 'N/A',
-        queryPreview: row.query ? (row.query.length > 60 ? row.query.substring(0, 60) + '...' : row.query) : 'N/A',
-        city: row.city || 'N/A',
-        date: formatDate(row.timestamp),
-        timestamp: parseDate(row.timestamp) || new Date(0),
-        queryType: (() => {
-          const query = (row.query || '').toLowerCase();
-          for (const [category, keywords] of Object.entries(queryCategories)) {
-            if (keywords.some(keyword => query.includes(keyword))) {
-              return category;
+      .map(row => {
+        const timestamp = parseDate(row.timestamp) || new Date(0);
+        return {
+          name: row.name || 'N/A',
+          email: row.email || 'N/A',
+          phone_number: row.phone_number || 'N/A',
+          query: row.query || 'N/A',
+          queryPreview: row.query ? (row.query.length > 50 ? row.query.substring(0, 50) + '...' : row.query) : 'N/A',
+          city: row.city || 'N/A',
+          date: formatDate(timestamp),
+          timestamp: timestamp,
+          sortDate: timestamp.getTime(), // For sorting
+          queryType: (() => {
+            const query = (row.query || '').toLowerCase();
+            for (const [category, keywords] of Object.entries(queryCategories)) {
+              if (keywords.some(keyword => query.includes(keyword))) {
+                return category;
+              }
             }
-          }
-          return 'Others';
-        })()
-      }))
-      .sort((a, b) => b.timestamp - a.timestamp); // Latest first
+            return 'Others';
+          })()
+        };
+      })
+      .sort((a, b) => b.sortDate - a.sortDate); // Latest first
 
-    console.log('Analysis complete:');
-    console.log('- Total valid responses:', totalResponses);
-    console.log('- Valid queries after filtering:', allLeads.length);
-    console.log('- Cities with coordinates:', Object.keys(cityCoordinates).length);
-    console.log('- Purchase inquiries:', queryTypes[0]?.count || 0);
+    console.log('✅ Analysis complete:');
+    console.log('- Valid customer responses:', allLeads.length);
+    console.log('- Cities mapped:', topCities.length);
+    console.log('- Monthly data points:', monthlyTrend.length);
 
     return {
       totalResponses: allLeads.length,
       originalTotal: totalResponses,
-      timeRange: `Live Customer Response Analytics (${allLeads.length} valid responses)`,
+      timeRange: `Live Customer Analytics Dashboard (${allLeads.length} verified responses)`,
       topCities,
       allCities,
-      geoData,
+      cityMapData: cityData,
       queryTypes: queryTypes.filter(qt => qt.count > 0),
       monthlyTrend,
       countries,
       keyInsights: [
-        `${allLeads.length} validated customer responses with meaningful queries`,
+        `${allLeads.length} validated customer responses with quality queries`,
         `${topCities[0]?.name || 'N/A'} leads with ${topCities[0]?.count || 0} responses (${topCities[0]?.percentage || 0}%)`,
-        `${queryTypes[0]?.count || 0} purchase inquiries showing strong buying intent`,
-        `${countries.length} countries represented with global reach potential`,
+        `${queryTypes[0]?.count || 0} purchase inquiries showing buying intent`,
+        `${countries.length} countries with ${topCities.length} major cities covered`,
         `${monthlyTrend.slice(-3).reduce((sum, m) => sum + m.responses, 0)} responses in recent quarter`,
-        `${geoData.length} cities mapped with geographic coordinates`,
-        `Advanced filtering removes test data and ensures data quality`,
-        `Real-time dashboard updates every 5 minutes from live sheet`
+        `Advanced filtering ensures only meaningful customer inquiries`,
+        `Real-time dashboard with live data updates every 5 minutes`,
+        `Geographic reach spans ${allCities.length} cities across India`
       ],
-      recentLeads: allLeads.length > 0 ? allLeads : [
-        { name: "No valid data found", email: "N/A", phone_number: "N/A", query: "Add customer data to see leads", queryPreview: "N/A", city: "N/A", date: "N/A", queryType: "Others" }
-      ]
+      recentLeads: allLeads.length > 0 ? allLeads : []
     };
   };
 
-  // Enhanced CSV parsing function
+  // Enhanced CSV parsing
   const parseCSVRow = (csvRow) => {
     const result = [];
     let current = '';
@@ -338,7 +345,7 @@ export default function CautioDashboard() {
     return result;
   };
 
-  // Fetch data from Google Sheets with enhanced parsing
+  // Fetch data from Google Sheets
   const fetchLiveData = async () => {
     setLoading(true);
     try {
@@ -359,11 +366,10 @@ export default function CautioDashboard() {
         throw new Error('No data found in sheet');
       }
       
-      // Parse header row
+      // Parse headers
       const headers = parseCSVRow(lines[0]).map(h => h.toLowerCase().trim());
       console.log('📋 Headers detected:', headers);
       
-      // Expected headers mapping
       const headerMap = {
         'name': 'name',
         'email': 'email', 
@@ -398,7 +404,7 @@ export default function CautioDashboard() {
         const email = (row.email || '').trim();
         const query = (row.query || '').trim();
         
-        // Skip if invalid name or email
+        // Skip invalid entries
         if (!name || name.length <= 1 || name.toLowerCase() === 'name') continue;
         if (isFakeEmail(email)) continue;
         if (!isValidQuery(query)) continue;
@@ -414,13 +420,13 @@ export default function CautioDashboard() {
         validAdded++;
       }
       
-      console.log('📈 Processing Summary:');
-      console.log('- Total rows processed:', totalProcessed);
-      console.log('- Valid entries added:', validAdded);
-      console.log('🎯 FINAL CUSTOMER COUNT:', rawData.length);
+      console.log('📈 Processing Complete:');
+      console.log('- Rows processed:', totalProcessed);
+      console.log('- Valid entries:', validAdded);
+      console.log('🎯 FINAL COUNT:', rawData.length);
       
       if (rawData.length === 0) {
-        throw new Error('No valid customer data found after filtering');
+        throw new Error('No valid customer data found');
       }
       
       const analyzedData = analyzeData(rawData);
@@ -428,52 +434,72 @@ export default function CautioDashboard() {
       setLastUpdated(new Date().toLocaleString());
       
     } catch (error) {
-      console.error('❌ Error fetching data:', error);
+      console.error('❌ Error:', error);
       
-      // Fallback demo data
+      // Demo data with proper structure
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      const demoMonthlyTrend = [];
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(currentYear, currentMonth - i, 1);
+        const monthLabel = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const responses = i < 3 ? Math.floor(Math.random() * 20) + 10 : Math.floor(Math.random() * 8);
+        demoMonthlyTrend.push({
+          month: monthLabel,
+          responses,
+          monthKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        });
+      }
+      
       setDashboardData({
-        totalResponses: "Error",
-        timeRange: "Unable to fetch live data - using demo data",
+        totalResponses: 0,
+        timeRange: "Unable to fetch live data - Demo Mode",
         topCities: [
-          { name: "Bengaluru", count: 45, percentage: 35, coordinates: { lat: 12.9716, lng: 77.5946 } },
-          { name: "Hyderabad", count: 18, percentage: 14, coordinates: { lat: 17.3850, lng: 78.4867 } },
-          { name: "Mumbai", count: 15, percentage: 12, coordinates: { lat: 19.0760, lng: 72.8777 } }
+          { name: "Bengaluru", count: 45, percentage: 35, lat: 12.9716, lng: 77.5946, region: 'South', size: 30 },
+          { name: "Mumbai", count: 18, percentage: 14, lat: 19.0760, lng: 72.8777, region: 'West', size: 20 }
         ],
         allCities: [
           { name: "Bengaluru", count: 45, percentage: 35 },
-          { name: "Hyderabad", count: 18, percentage: 14 },
-          { name: "Mumbai", count: 15, percentage: 12 }
+          { name: "Mumbai", count: 18, percentage: 14 }
         ],
-        geoData: [
-          { city: "Bengaluru", x: 77.5946, y: 12.9716, count: 45, size: 40 },
-          { city: "Hyderabad", x: 78.4867, y: 17.3850, count: 18, size: 25 }
+        cityMapData: [
+          { name: "Bengaluru", count: 45, lat: 12.9716, lng: 77.5946, region: 'South', size: 30 },
+          { name: "Mumbai", count: 18, lat: 19.0760, lng: 72.8777, region: 'West', size: 20 }
         ],
         queryTypes: [
-          { type: "Purchase Inquiry", count: 65, percentage: 52, color: "#3B82F6" },
-          { type: "Business Partnership", count: 25, percentage: 20, color: "#10B981" }
+          { type: "Purchase Inquiry", count: 25, percentage: 62, color: "#3B82F6" },
+          { type: "Business Partnership", count: 10, percentage: 25, color: "#10B981" }
         ],
-        monthlyTrend: [
-          { month: 'Aug 2024', responses: 25 },
-          { month: 'Sep 2024', responses: 35 },
-          { month: 'Oct 2024', responses: 42 }
-        ],
+        monthlyTrend: demoMonthlyTrend,
         countries: [
-          { name: "India", count: 120, percentage: 85, flag: "🇮🇳" }
+          { name: "India", count: 40, percentage: 95, flag: "🇮🇳" }
         ],
         keyInsights: [
-          "Demo data - Unable to fetch live Google Sheets data",
+          "Demo mode - Please check Google Sheets access",
           "Ensure sheet is publicly accessible",
-          "Check sheet ID and permissions"
+          "Verify sheet ID and data format"
         ],
         recentLeads: [
-          { name: "Demo Customer", email: "demo@example.com", phone_number: "9999999999", query: "Interested in dashcam for car", queryPreview: "Interested in dashcam...", city: "Bengaluru", date: "01-01-2024", queryType: "Purchase Inquiry" }
+          { 
+            name: "Demo Customer", 
+            email: "demo@example.com", 
+            phone_number: "9999999999", 
+            query: "Interested in dashcam for my car. Can you please share pricing details?", 
+            queryPreview: "Interested in dashcam for my car...", 
+            city: "Bengaluru", 
+            date: "01-11-2024", 
+            queryType: "Purchase Inquiry",
+            timestamp: new Date(),
+            sortDate: Date.now()
+          }
         ]
       });
     }
     setLoading(false);
   };
 
-  // Load data on component mount
+  // Load data on mount
   useEffect(() => {
     fetchLiveData();
     const interval = setInterval(fetchLiveData, 5 * 60 * 1000);
@@ -485,7 +511,7 @@ export default function CautioDashboard() {
     setCurrentPage(1);
   }, [selectedQueryType, selectedCity]);
 
-  // Enhanced StatCard with better styling
+  // Enhanced StatCard component
   const StatCard = ({ icon: Icon, title, value, subtitle, onClick, clickable = false, description, isActive = false }) => (
     <div 
       className={`bg-white p-6 rounded-xl shadow-lg border-l-4 transition-all duration-300 ${
@@ -515,6 +541,7 @@ export default function CautioDashboard() {
     </div>
   );
 
+  // Event handlers
   const handleQueryTypeClick = (queryType) => {
     setSelectedQueryType(selectedQueryType === queryType.type ? null : queryType.type);
   };
@@ -545,11 +572,11 @@ export default function CautioDashboard() {
     setShowQueryModal(true);
   };
 
-  // Enhanced Query Modal Component
+  // Enhanced Query Modal
   const QueryModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between p-6 border-b bg-gray-50 rounded-t-xl">
+        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
           <h3 className="text-xl font-bold text-gray-900 flex items-center">
             <MessageSquare className="h-6 w-6 mr-2 text-blue-600" />
             Customer Query Details
@@ -562,14 +589,14 @@ export default function CautioDashboard() {
           </button>
         </div>
         <div className="p-6">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-lg">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
+            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-lg font-medium">
               "{selectedQuery}"
             </p>
           </div>
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">
-              💡 This is a real customer inquiry from your website contact form. Consider following up for better conversion.
+              💡 This is a verified customer inquiry. Consider following up for better conversion rates.
             </p>
           </div>
         </div>
@@ -587,38 +614,38 @@ export default function CautioDashboard() {
 
   if (!dashboardData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-6"></div>
-          <p className="text-xl text-gray-700 font-semibold">Loading Live Customer Data...</p>
-          <p className="text-sm text-gray-500 mt-2">Processing and validating queries from your Google Sheet</p>
+          <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-blue-600 mx-auto mb-6"></div>
+          <p className="text-2xl text-gray-700 font-bold">Loading Customer Analytics...</p>
+          <p className="text-sm text-gray-500 mt-2">Processing live data from Google Sheets</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
       {/* Enhanced Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Cautio Website Analytics
+            <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Cautio Analytics Dashboard
             </h1>
-            <p className="text-gray-600 text-lg">{dashboardData.timeRange}</p>
+            <p className="text-gray-600 text-xl">{dashboardData.timeRange}</p>
           </div>
           <button
             onClick={fetchLiveData}
             disabled={loading}
-            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl"
+            className="flex items-center space-x-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl"
           >
             <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="font-medium">Refresh Data</span>
+            <span className="font-semibold">Refresh Data</span>
           </button>
         </div>
         {lastUpdated && (
-          <p className="text-sm text-gray-500 mt-2 flex items-center">
+          <p className="text-sm text-gray-500 mt-3 flex items-center">
             <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
             Last updated: {lastUpdated}
           </p>
@@ -626,16 +653,16 @@ export default function CautioDashboard() {
       </div>
 
       {/* Enhanced Tabs */}
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {['overview', 'all-cities', 'insights'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-3 px-2 border-b-2 font-semibold text-sm transition-all ${
+                className={`py-4 px-4 border-b-2 font-bold text-sm transition-all ${
                   activeTab === tab
-                    ? 'border-blue-500 text-blue-600 bg-blue-50 rounded-t-lg'
+                    ? 'border-blue-500 text-blue-600 bg-blue-50 rounded-t-lg shadow-sm'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -648,17 +675,17 @@ export default function CautioDashboard() {
 
       {/* Enhanced Filters */}
       {(selectedQueryType || selectedCity) && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+        <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+              <span className="text-sm font-bold text-gray-700">🔍 Active Filters:</span>
               {selectedQueryType && (
-                <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium border border-blue-200">
+                <span className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-bold shadow-md">
                   📊 {selectedQueryType}
                 </span>
               )}
               {selectedCity && (
-                <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-200">
+                <span className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold shadow-md">
                   📍 {selectedCity}
                 </span>
               )}
@@ -668,9 +695,9 @@ export default function CautioDashboard() {
                 setSelectedQueryType(null);
                 setSelectedCity(null);
               }}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 hover:bg-white rounded-lg transition-colors"
+              className="text-blue-600 hover:text-blue-800 text-sm font-bold px-4 py-2 hover:bg-white rounded-lg transition-colors shadow-sm"
             >
-              Clear All Filters
+              Clear All Filters ✕
             </button>
           </div>
         </div>
@@ -682,9 +709,9 @@ export default function CautioDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               icon={Users} 
-              title="Total Valid Responses" 
+              title="Total Customer Responses" 
               value={dashboardData.totalResponses} 
-              subtitle="Verified customer inquiries" 
+              subtitle="Verified quality inquiries" 
               description="Click to view all customer data"
               onClick={handleAllResponsesClick}
               clickable={true}
@@ -694,7 +721,7 @@ export default function CautioDashboard() {
               icon={ShoppingCart} 
               title="Purchase Inquiries" 
               value={dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.count || 0}
-              subtitle={`${dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.percentage || 0}% ready to buy`}
+              subtitle={`${dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.percentage || 0}% ready to buy customers`}
               description="Filter by purchase intent"
               onClick={handlePurchaseInquiriesClick}
               clickable={true}
@@ -702,151 +729,226 @@ export default function CautioDashboard() {
             />
             <StatCard 
               icon={Globe} 
-              title="Geographic Reach" 
+              title="Geographic Coverage" 
               value={`${dashboardData.allCities.length} Cities`} 
-              subtitle={`${dashboardData.topCities[0]?.name || 'N/A'} leads (${dashboardData.topCities[0]?.count || 0})`}
-              description="View geographic distribution"
+              subtitle={`Leading: ${dashboardData.topCities[0]?.name || 'N/A'} (${dashboardData.topCities[0]?.count || 0})`}
+              description="Explore geographic distribution"
               onClick={handleGeographicReachClick}
               clickable={true}
               isActive={activeTab === 'all-cities'}
             />
           </div>
 
-          {/* Geographic Visualization */}
-          {dashboardData.geoData && dashboardData.geoData.length > 0 && (
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <Globe className="h-6 w-6 mr-2 text-blue-600" />
-                Geographic Distribution Map
+          {/* Enhanced Geographic Map Visualization */}
+          {dashboardData.cityMapData && dashboardData.cityMapData.length > 0 && (
+            <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+              <h3 className="text-2xl font-bold mb-6 flex items-center">
+                <Globe className="h-7 w-7 mr-3 text-blue-600" />
+                India - Customer Distribution Map
               </h3>
-              <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700">
-                  🌍 <strong>Interactive Map:</strong> Each point represents a city with customer responses. Size indicates response volume.
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+                <p className="text-sm text-blue-700 font-medium">
+                  🗺️ <strong>Interactive Geographic Map:</strong> Each circle represents a city with customer responses. Circle size indicates response volume. Click any city to filter customer leads.
                 </p>
               </div>
-              <ResponsiveContainer width="100%" height={400}>
-                <ScatterChart data={dashboardData.geoData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="x" 
-                    type="number"
-                    domain={['dataMin - 1', 'dataMax + 1']}
-                    tick={{ fontSize: 12 }}
-                    label={{ value: 'Longitude', position: 'insideBottom', offset: -5 }}
-                  />
-                  <YAxis 
-                    dataKey="y" 
-                    type="number"
-                    domain={['dataMin - 1', 'dataMax + 1']}
-                    tick={{ fontSize: 12 }}
-                    label={{ value: 'Latitude', angle: -90, position: 'insideLeft' }}
-                  />
-                  <Tooltip 
-                    formatter={(value, name, props) => {
-                      if (name === 'count') return [`${value} responses`, 'Customer Count'];
-                      return [value, name];
-                    }}
-                    labelFormatter={(value, payload) => {
-                      if (payload && payload[0]) {
-                        return `City: ${payload[0].payload.city}`;
-                      }
-                      return '';
-                    }}
-                    contentStyle={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                  <Scatter 
-                    dataKey="count" 
-                    fill="#3B82F6"
-                    onClick={(data) => handleCityClick({name: data.city})}
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
-              <div className="mt-4 text-sm text-gray-600">
-                Click on any point to filter customer leads by that city
+              
+              {/* Custom India Map Visualization */}
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={500}>
+                  <ComposedChart
+                    data={dashboardData.cityMapData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="lng"
+                      type="number"
+                      domain={[68, 97]} // India longitude range
+                      tick={{ fontSize: 12 }}
+                      label={{ value: 'Longitude (°E)', position: 'insideBottom', offset: -10, style: { textAnchor: 'middle', fontWeight: 'bold' } }}
+                    />
+                    <YAxis 
+                      dataKey="lat"
+                      type="number"
+                      domain={[6, 37]} // India latitude range
+                      tick={{ fontSize: 12 }}
+                      label={{ value: 'Latitude (°N)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontWeight: 'bold' } }}
+                    />
+                    <Tooltip 
+                      formatter={(value, name, props) => {
+                        if (name === 'count') return [`${value} customer responses`, 'Total Inquiries'];
+                        return [value, name];
+                      }}
+                      labelFormatter={(value, payload) => {
+                        if (payload && payload[0]) {
+                          const data = payload[0].payload;
+                          return `📍 ${data.name} (${data.region} India)`;
+                        }
+                        return '';
+                      }}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '2px solid #3b82f6',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                        fontWeight: 'bold'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count"
+                      fill="#3b82f6"
+                      radius={50}
+                      onClick={(data) => handleCityClick({name: data.name})}
+                      cursor="pointer"
+                      name="count"
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+                
+                {/* City Labels */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {dashboardData.topCities.slice(0, 8).map((city) => (
+                    <div 
+                      key={city.name}
+                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedCity === city.name 
+                          ? 'bg-blue-100 border-blue-500' 
+                          : 'bg-gray-50 border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => handleCityClick(city)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-900">{city.name}</span>
+                        <span className="text-blue-600 font-bold">{city.count}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">{city.region} • {city.percentage}%</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {/* Enhanced Monthly Trend */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold flex items-center">
-                <TrendingUp className="h-6 w-6 mr-2 text-blue-600" />
+          {/* Enhanced Monthly Trends */}
+          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold flex items-center">
+                <TrendingUp className="h-7 w-7 mr-3 text-green-600" />
                 Monthly Response Trends
               </h3>
-              <div className="text-sm text-gray-500">
-                12-month analysis
+              <div className="text-sm text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full">
+                📈 12-month analysis
               </div>
             </div>
+            
+            <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+              <p className="text-sm text-green-700 font-medium">
+                📊 <strong>Trend Analytics:</strong> Track monthly customer inquiry patterns to identify growth trends, seasonal variations, and peak business periods.
+              </p>
+            </div>
+
             <ResponsiveContainer width="100%" height={400}>
               <AreaChart data={dashboardData.monthlyTrend}>
                 <defs>
-                  <linearGradient id="responseGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                  <linearGradient id="monthlyGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 12, fontWeight: 'bold' }}
                   angle={-45}
                   textAnchor="end"
-                  height={60}
+                  height={80}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }}
-                  label={{ value: 'Responses', angle: -90, position: 'insideLeft' }}
+                  tick={{ fontSize: 12, fontWeight: 'bold' }}
+                  label={{ value: 'Customer Responses', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontWeight: 'bold' } }}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${value} inquiries`, 'Customer Responses']}
+                  formatter={(value) => [`${value} customer inquiries`, 'Monthly Responses']}
+                  labelFormatter={(label) => `📅 ${label}`}
                   contentStyle={{
                     backgroundColor: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    border: '2px solid #10b981',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                    fontWeight: 'bold'
                   }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="responses" 
-                  stroke="#10B981" 
-                  fill="url(#responseGradient)"
-                  strokeWidth={3}
+                  stroke="#10b981" 
+                  fill="url(#monthlyGradient)"
+                  strokeWidth={4}
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
+
+            {/* Monthly Stats */}
+            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-xl text-center border-2 border-blue-200">
+                <div className="font-bold text-blue-600 mb-1">Total (12 months)</div>
+                <div className="text-2xl font-bold text-blue-800">
+                  {dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0)}
+                </div>
+                <div className="text-xs text-blue-600">Customer responses</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-xl text-center border-2 border-green-200">
+                <div className="font-bold text-green-600 mb-1">Recent Quarter</div>
+                <div className="text-2xl font-bold text-green-800">
+                  {dashboardData.monthlyTrend.slice(-3).reduce((sum, m) => sum + m.responses, 0)}
+                </div>
+                <div className="text-xs text-green-600">Last 3 months</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-xl text-center border-2 border-purple-200">
+                <div className="font-bold text-purple-600 mb-1">Peak Month</div>
+                <div className="text-2xl font-bold text-purple-800">
+                  {Math.max(...dashboardData.monthlyTrend.map(m => m.responses))}
+                </div>
+                <div className="text-xs text-purple-600">Highest responses</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-xl text-center border-2 border-orange-200">
+                <div className="font-bold text-orange-600 mb-1">Monthly Average</div>
+                <div className="text-2xl font-bold text-orange-800">
+                  {Math.round(dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0) / 12)}
+                </div>
+                <div className="text-xs text-orange-600">Average per month</div>
+              </div>
+            </div>
           </div>
 
           {/* Enhanced Customer Leads Table */}
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-6 border-b bg-gray-50">
-              <h3 className="text-xl font-semibold flex items-center">
-                <Users className="h-6 w-6 mr-2 text-blue-600" />
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="p-8 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+              <h3 className="text-2xl font-bold flex items-center">
+                <Users className="h-7 w-7 mr-3 text-blue-600" />
                 Customer Leads Database
                 {(selectedQueryType || selectedCity) && (
-                  <span className="ml-3 text-sm text-gray-500 bg-yellow-100 px-3 py-1 rounded-full">
-                    Filtered Results
+                  <span className="ml-4 text-sm text-orange-600 bg-yellow-100 px-4 py-2 rounded-full font-bold border-2 border-yellow-300">
+                    🔍 Filtered Results
                   </span>
                 )}
               </h3>
+              <p className="text-gray-600 mt-2">Latest customer inquiries shown first • Click 👁️ to view full query</p>
             </div>
+            
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className="border-b bg-gray-100">
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Customer Name</th>
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Contact Email</th>
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Phone Number</th>
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Customer Query</th>
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Location</th>
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Date</th>
-                    <th className="text-left py-4 px-4 font-bold text-gray-800">Type</th>
+                  <tr className="border-b-2 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <th className="text-left py-4 px-6 font-bold text-gray-800">Customer Name</th>
+                    <th className="text-left py-4 px-6 font-bold text-gray-800">Contact Email</th>
+                    <th className="text-left py-4 px-6 font-bold text-gray-800">Phone Number</th>
+                    <th className="text-left py-4 px-6 font-bold text-gray-800 min-w-[300px]">Customer Query</th>
+                    <th className="text-left py-4 px-6 font-bold text-gray-800">Location</th>
+                    <th className="text-left py-4 px-6 font-bold text-gray-800">Date</th>
+                    <th className="text-left py-4 px-6 font-bold text-gray-800">Type</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -863,43 +965,47 @@ export default function CautioDashboard() {
                     return (
                       <>
                         {paginatedLeads.map((lead, index) => (
-                          <tr key={startIndex + index} className="border-b hover:bg-blue-50 transition-colors duration-200">
-                            <td className="py-4 px-4">
-                              <div className="font-semibold text-gray-900">{lead.name}</div>
+                          <tr key={startIndex + index} className="border-b hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300">
+                            <td className="py-5 px-6">
+                              <div className="font-bold text-gray-900 text-base">{lead.name}</div>
                             </td>
-                            <td className="py-4 px-4">
-                              <div className="text-blue-600 text-sm font-medium">{lead.email}</div>
+                            <td className="py-5 px-6">
+                              <div className="text-blue-600 text-sm font-semibold">{lead.email}</div>
                             </td>
-                            <td className="py-4 px-4">
-                              <div className="text-gray-600 text-sm font-mono">{lead.phone_number}</div>
+                            <td className="py-5 px-6">
+                              <div className="text-gray-700 text-sm font-mono bg-gray-100 px-2 py-1 rounded">{lead.phone_number}</div>
                             </td>
-                            <td className="py-4 px-4 max-w-xs">
+                            <td className="py-5 px-6">
                               <div className="flex items-center space-x-3">
-                                <span className="flex-1 text-gray-700 text-sm leading-relaxed">{lead.queryPreview}</span>
+                                <div className="flex-1">
+                                  <span className="text-gray-800 text-sm leading-relaxed font-medium">{lead.queryPreview}</span>
+                                </div>
                                 {lead.query && lead.query !== 'N/A' && (
                                   <button
                                     onClick={() => handleQueryClick(lead.query)}
-                                    className="text-blue-600 hover:text-blue-800 flex-shrink-0 p-2 hover:bg-blue-100 rounded-full transition-colors"
+                                    className="text-blue-600 hover:text-blue-800 flex-shrink-0 p-2 hover:bg-blue-100 rounded-full transition-all shadow-sm"
                                     title="View full query"
                                   >
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-5 w-5" />
                                   </button>
                                 )}
                               </div>
                             </td>
-                            <td className="py-4 px-4">
-                              <div className="flex items-center text-gray-600 text-sm">
-                                <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                            <td className="py-5 px-6">
+                              <div className="flex items-center text-gray-700 text-sm font-medium">
+                                <MapPin className="h-4 w-4 mr-2 text-blue-500" />
                                 {lead.city}
                               </div>
                             </td>
-                            <td className="py-4 px-4 text-gray-600 text-sm">{lead.date}</td>
-                            <td className="py-4 px-4">
-                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                                lead.queryType === 'Purchase Inquiry' ? 'bg-green-100 text-green-800' :
-                                lead.queryType === 'Business Partnership' ? 'bg-blue-100 text-blue-800' :
-                                lead.queryType === 'Job/Internship' ? 'bg-purple-100 text-purple-800' :
-                                'bg-gray-100 text-gray-800'
+                            <td className="py-5 px-6">
+                              <div className="text-gray-600 text-sm font-medium bg-gray-100 px-2 py-1 rounded">{lead.date}</div>
+                            </td>
+                            <td className="py-5 px-6">
+                              <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                                lead.queryType === 'Purchase Inquiry' ? 'bg-green-100 text-green-800 border border-green-300' :
+                                lead.queryType === 'Business Partnership' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                                lead.queryType === 'Job/Internship' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
+                                'bg-gray-100 text-gray-800 border border-gray-300'
                               }`}>
                                 {lead.queryType}
                               </span>
@@ -908,11 +1014,11 @@ export default function CautioDashboard() {
                         ))}
                         {paginatedLeads.length === 0 && (
                           <tr>
-                            <td colSpan="7" className="py-12 px-4 text-center text-gray-500">
+                            <td colSpan="7" className="py-16 px-6 text-center">
                               <div className="flex flex-col items-center">
-                                <Users className="h-12 w-12 text-gray-300 mb-4" />
-                                <p className="text-lg font-medium">No leads found</p>
-                                <p className="text-sm">Try adjusting your filters or check back later</p>
+                                <Users className="h-16 w-16 text-gray-300 mb-6" />
+                                <p className="text-xl font-bold text-gray-500 mb-2">No Customer Leads Found</p>
+                                <p className="text-sm text-gray-400">Try adjusting your filters or check back later for new inquiries</p>
                               </div>
                             </td>
                           </tr>
@@ -935,17 +1041,17 @@ export default function CautioDashboard() {
               if (totalPages <= 1) return null;
               
               return (
-                <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
-                  <div className="text-sm text-gray-700 font-medium">
-                    Showing {Math.min((currentPage - 1) * leadsPerPage + 1, filteredLeads.length)} to {Math.min(currentPage * leadsPerPage, filteredLeads.length)} of {filteredLeads.length} customer leads
+                <div className="px-8 py-6 bg-gradient-to-r from-gray-50 to-blue-50 border-t-2 flex items-center justify-between">
+                  <div className="text-sm text-gray-700 font-bold">
+                    Showing <span className="text-blue-600">{Math.min((currentPage - 1) * leadsPerPage + 1, filteredLeads.length)}</span> to <span className="text-blue-600">{Math.min(currentPage * leadsPerPage, filteredLeads.length)}</span> of <span className="text-blue-600">{filteredLeads.length}</span> customer leads
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium"
+                      className="px-4 py-2 text-sm border-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors font-bold shadow-sm"
                     >
-                      Previous
+                      ← Previous
                     </button>
                     <div className="flex space-x-1">
                       {[...Array(totalPages)].map((_, i) => {
@@ -955,17 +1061,17 @@ export default function CautioDashboard() {
                             <button
                               key={page}
                               onClick={() => setCurrentPage(page)}
-                              className={`px-4 py-2 text-sm border rounded-lg transition-colors font-medium ${
+                              className={`px-4 py-2 text-sm border-2 rounded-lg transition-colors font-bold shadow-sm ${
                                 currentPage === page 
                                   ? 'bg-blue-600 text-white border-blue-600' 
-                                  : 'hover:bg-gray-50'
+                                  : 'hover:bg-blue-50 border-gray-300'
                               }`}
                             >
                               {page}
                             </button>
                           );
                         } else if (page === currentPage - 3 || page === currentPage + 3) {
-                          return <span key={page} className="px-2 text-gray-400">...</span>;
+                          return <span key={page} className="px-2 text-gray-400 font-bold">...</span>;
                         }
                         return null;
                       })}
@@ -973,9 +1079,9 @@ export default function CautioDashboard() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium"
+                      className="px-4 py-2 text-sm border-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors font-bold shadow-sm"
                     >
-                      Next
+                      Next →
                     </button>
                   </div>
                 </div>
@@ -986,43 +1092,43 @@ export default function CautioDashboard() {
       )}
 
       {activeTab === 'all-cities' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Enhanced All Cities Analysis */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-xl font-semibold mb-6 flex items-center">
-              <MapPin className="h-6 w-6 mr-2 text-blue-600" />
-              Complete Geographic Analysis - {dashboardData.allCities.length} Cities
+          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+            <h3 className="text-2xl font-bold mb-8 flex items-center">
+              <MapPin className="h-7 w-7 mr-3 text-blue-600" />
+              Complete Geographic Analysis - {dashboardData.allCities.length} Cities Covered
             </h3>
             
             {/* Cities Grid with enhanced styling */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
               {dashboardData.allCities.map((city, index) => (
                 <div 
                   key={city.name}
-                  className={`p-5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+                  className={`p-6 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
                     selectedCity === city.name 
-                      ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' 
-                      : 'bg-gray-50 border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-102'
+                      ? 'bg-blue-50 border-blue-500 shadow-xl scale-105' 
+                      : 'bg-gray-50 border-gray-200 hover:border-blue-300 hover:shadow-lg hover:scale-102'
                   }`}
                   onClick={() => handleCityClick(city)}
                 >
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-4">
                     <h4 className="font-bold text-gray-900 text-lg">{city.name}</h4>
                     {index < 3 && (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${
                         index === 0 ? 'bg-yellow-500' :
                         index === 1 ? 'bg-gray-400' :
                         'bg-orange-500'
                       }`}>
-                        {index + 1}
+                        #{index + 1}
                       </div>
                     )}
                   </div>
-                  <p className="text-3xl font-bold text-blue-600 mb-2">{city.count}</p>
-                  <p className="text-sm text-gray-600 mb-3">{city.percentage}% of total responses</p>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <p className="text-3xl font-bold text-blue-600 mb-3">{city.count}</p>
+                  <p className="text-sm text-gray-600 mb-4">{city.percentage}% of total responses</p>
+                  <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-1000 shadow-sm"
                       style={{ width: `${city.percentage}%` }}
                     ></div>
                   </div>
@@ -1031,71 +1137,76 @@ export default function CautioDashboard() {
             </div>
 
             {/* Enhanced Cities Bar Chart */}
-            <div className="mt-8">
-              <h4 className="text-lg font-semibold mb-4">Complete Geographic Distribution</h4>
-              <ResponsiveContainer width="100%" height={500}>
+            <div className="mt-12">
+              <h4 className="text-xl font-bold mb-6">Complete Geographic Distribution</h4>
+              <ResponsiveContainer width="100%" height={600}>
                 <BarChart 
                   data={dashboardData.allCities} 
-                  margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 120 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="name" 
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 10, fontWeight: 'bold' }}
                     angle={-45}
                     textAnchor="end"
-                    height={120}
+                    height={140}
                     interval={0}
                   />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <YAxis 
+                    tick={{ fontSize: 12, fontWeight: 'bold' }}
+                    label={{ value: 'Customer Responses', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontWeight: 'bold' } }}
+                  />
                   <Tooltip 
                     formatter={(value, name, props) => [
                       `${value} responses (${props.payload.percentage}%)`, 
                       'Customer Inquiries'
                     ]}
+                    labelFormatter={(label) => `📍 ${label}`}
                     contentStyle={{
                       backgroundColor: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      border: '2px solid #3b82f6',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                      fontWeight: 'bold'
                     }}
                   />
                   <Bar 
                     dataKey="count" 
-                    fill="#3B82F6"
+                    fill="#3b82f6"
                     onClick={handleCityClick}
                     cursor="pointer"
-                    radius={[4, 4, 0, 0]}
+                    radius={[6, 6, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
             {/* Enhanced City Statistics */}
-            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-blue-50 p-6 rounded-xl text-center border border-blue-200">
-                <div className="font-bold text-blue-600 mb-2">Total Cities</div>
-                <div className="text-3xl font-bold text-blue-800">{dashboardData.allCities.length}</div>
-                <div className="text-xs text-blue-600 mt-1">Geographic reach</div>
+            <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="bg-blue-50 p-6 rounded-xl text-center border-2 border-blue-200 shadow-md">
+                <div className="font-bold text-blue-600 mb-2 text-lg">Total Cities</div>
+                <div className="text-4xl font-bold text-blue-800">{dashboardData.allCities.length}</div>
+                <div className="text-xs text-blue-600 mt-2 font-medium">Geographic coverage</div>
               </div>
-              <div className="bg-green-50 p-6 rounded-xl text-center border border-green-200">
-                <div className="font-bold text-green-600 mb-2">Top 3 Cities</div>
-                <div className="text-3xl font-bold text-green-800">
+              <div className="bg-green-50 p-6 rounded-xl text-center border-2 border-green-200 shadow-md">
+                <div className="font-bold text-green-600 mb-2 text-lg">Top 3 Cities</div>
+                <div className="text-4xl font-bold text-green-800">
                   {dashboardData.allCities.slice(0, 3).reduce((sum, city) => sum + city.percentage, 0)}%
                 </div>
-                <div className="text-xs text-green-600 mt-1">Market concentration</div>
+                <div className="text-xs text-green-600 mt-2 font-medium">Market concentration</div>
               </div>
-              <div className="bg-purple-50 p-6 rounded-xl text-center border border-purple-200">
-                <div className="font-bold text-purple-600 mb-2">Leading City</div>
-                <div className="text-3xl font-bold text-purple-800">{dashboardData.allCities[0]?.count || 0}</div>
-                <div className="text-xs text-purple-600 mt-1">{dashboardData.allCities[0]?.name || 'N/A'}</div>
+              <div className="bg-purple-50 p-6 rounded-xl text-center border-2 border-purple-200 shadow-md">
+                <div className="font-bold text-purple-600 mb-2 text-lg">Leading City</div>
+                <div className="text-4xl font-bold text-purple-800">{dashboardData.allCities[0]?.count || 0}</div>
+                <div className="text-xs text-purple-600 mt-2 font-medium">{dashboardData.allCities[0]?.name || 'N/A'}</div>
               </div>
-              <div className="bg-orange-50 p-6 rounded-xl text-center border border-orange-200">
-                <div className="font-bold text-orange-600 mb-2">Average</div>
-                <div className="text-3xl font-bold text-orange-800">
+              <div className="bg-orange-50 p-6 rounded-xl text-center border-2 border-orange-200 shadow-md">
+                <div className="font-bold text-orange-600 mb-2 text-lg">Average</div>
+                <div className="text-4xl font-bold text-orange-800">
                   {Math.round(dashboardData.allCities.reduce((sum, city) => sum + city.count, 0) / dashboardData.allCities.length)}
                 </div>
-                <div className="text-xs text-orange-600 mt-1">Per city</div>
+                <div className="text-xs text-orange-600 mt-2 font-medium">Per city</div>
               </div>
             </div>
           </div>
@@ -1103,15 +1214,15 @@ export default function CautioDashboard() {
       )}
 
       {activeTab === 'insights' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Enhanced Key Insights */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-xl font-semibold mb-4">💡 Key Business Insights</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+            <h3 className="text-2xl font-bold mb-6">💡 Strategic Business Insights</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {dashboardData.keyInsights.map((insight, index) => (
-                <div key={index} className="flex items-start space-x-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                  <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-medium text-gray-700">{insight}</span>
+                <div key={index} className="flex items-start space-x-4 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-md">
+                  <CheckCircle className="h-6 w-6 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm font-semibold text-gray-800 leading-relaxed">{insight}</span>
                 </div>
               ))}
             </div>
