@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Users, MessageSquare, TrendingUp, RefreshCw, CheckCircle, Calendar, MapPin } from 'lucide-react';
+import { Users, MessageSquare, TrendingUp, RefreshCw, CheckCircle, Calendar, MapPin, X, Eye } from 'lucide-react';
 
 export default function CautioDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -10,6 +10,8 @@ export default function CautioDashboard() {
   const [selectedQueryType, setSelectedQueryType] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showQueryModal, setShowQueryModal] = useState(false);
+  const [selectedQuery, setSelectedQuery] = useState('');
   const leadsPerPage = 20;
 
   // Simple sheet configuration
@@ -23,6 +25,60 @@ export default function CautioDashboard() {
       'fattudev@fattudev.in'
     ];
     return fakeEmails.includes(cleanEmail);
+  };
+
+  // Enhanced query validation for English, Hinglish, and Hindi
+  const isValidQuery = (query) => {
+    if (!query || typeof query !== 'string') return false;
+    
+    const cleanQuery = query.trim();
+    
+    // Must be at least 3 characters
+    if (cleanQuery.length < 3) return false;
+    
+    // Check if it's just a single character repeated
+    if (new Set(cleanQuery.toLowerCase()).size <= 2) return false;
+    
+    // Must contain at least one letter (English, Hindi, or other scripts)
+    if (!/[a-zA-Z\u0900-\u097F\u00C0-\u017F]/.test(cleanQuery)) return false;
+    
+    // Should not be just numbers or special characters
+    if (/^[\d\s\-\.\,\!\?\@\#\$\%\^\&\*\(\)\_\+\=\[\]\{\}\|\\\:\;\"\'\<\>\,\.\/\?]+$/.test(cleanQuery)) return false;
+    
+    // Should contain some meaningful words (at least 2 characters each)
+    const words = cleanQuery.split(/\s+/).filter(word => word.length >= 2);
+    if (words.length === 0) return false;
+    
+    // Common invalid patterns to filter out
+    const invalidPatterns = [
+      /^test\s*$/i,
+      /^hello\s*$/i,
+      /^hi\s*$/i,
+      /^ok\s*$/i,
+      /^yes\s*$/i,
+      /^no\s*$/i,
+      /^good\s*$/i,
+      /^nice\s*$/i,
+      /^thanks\s*$/i,
+      /^thank you\s*$/i,
+      /^\d+\s*$/,
+      /^[a-zA-Z]\s*$/,
+      /^[a-zA-Z]{1,2}\s*$/
+    ];
+    
+    // Check against invalid patterns
+    for (const pattern of invalidPatterns) {
+      if (pattern.test(cleanQuery)) return false;
+    }
+    
+    // Must have some sentence structure (contains vowels and consonants or valid Hindi characters)
+    const hasVowels = /[aeiouAEIOU\u0905-\u0914\u0960-\u0961]/.test(cleanQuery);
+    const hasConsonants = /[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ\u0915-\u0939\u0958-\u095F]/.test(cleanQuery);
+    const hasHindiChars = /[\u0900-\u097F]/.test(cleanQuery);
+    
+    if (!hasHindiChars && (!hasVowels || !hasConsonants)) return false;
+    
+    return true;
   };
 
   // Format date function
@@ -43,7 +99,7 @@ export default function CautioDashboard() {
     
     console.log('Analyzing', totalResponses, 'responses (after filtering fake emails)');
     
-    // City analysis
+    // Enhanced city analysis - ALL cities
     const cityCount = {};
     rawData.forEach(row => {
       const city = row.city || '';
@@ -61,6 +117,15 @@ export default function CautioDashboard() {
     const topCities = Object.entries(cityCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: Math.round((count / totalResponses) * 100)
+      }));
+
+    // ALL cities for the new tab
+    const allCities = Object.entries(cityCount)
+      .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({
         name,
         count,
@@ -87,11 +152,11 @@ export default function CautioDashboard() {
             name === 'USA' ? '🇺🇸' : name === 'Canada' ? '🇨🇦' : '🏳️'
     }));
 
-    // Query analysis
+    // Query analysis with validation
     const queryCategories = {
-      'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'want to buy'],
-      'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution'],
-      'Job/Internship': ['job', 'internship', 'career', 'hiring', 'opportunity'],
+      'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'want to buy', 'cost', 'order'],
+      'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution', 'dealer'],
+      'Job/Internship': ['job', 'internship', 'career', 'hiring', 'opportunity', 'work'],
       'Investment/Funding': ['funding', 'investment', 'venture', 'capital'],
       'Others': []
     };
@@ -155,13 +220,15 @@ export default function CautioDashboard() {
         monthKey: month
       }));
 
-    // All customer leads (latest first) - No slice limit
+    // All customer leads with enhanced query validation (latest first)
     const allLeads = rawData
+      .filter(row => isValidQuery(row.query)) // Filter out invalid queries
       .map(row => ({
         name: row.name || 'N/A',
         email: row.email || 'N/A',
         phone_number: row.phone_number || 'N/A',
-        query: row.query ? (row.query.length > 80 ? row.query.substring(0, 80) + '...' : row.query) : 'N/A',
+        query: row.query || 'N/A',
+        queryPreview: row.query ? (row.query.length > 80 ? row.query.substring(0, 80) + '...' : row.query) : 'N/A',
         city: row.city || 'N/A',
         date: formatDate(row.timestamp),
         timestamp: row.timestamp
@@ -170,29 +237,32 @@ export default function CautioDashboard() {
 
     console.log('Analysis complete:');
     console.log('- Total valid responses:', totalResponses);
+    console.log('- Valid queries after filtering:', allLeads.length);
     console.log('- Cities found:', Object.keys(cityCount).length);
     console.log('- Countries found:', Object.keys(countryCount).length);
-    console.log('- Query types distribution:', queryTypes.map(qt => `${qt.type}: ${qt.count}`));
 
     return {
-      totalResponses,
-      timeRange: `Customer Response Analytics (${totalResponses} valid responses)`,
+      totalResponses: allLeads.length, // Use filtered count
+      originalTotal: totalResponses, // Keep original for reference
+      timeRange: `Customer Response Analytics (${allLeads.length} valid responses with proper queries)`,
       topCities,
+      allCities,
       queryTypes: queryTypes.filter(qt => qt.count > 0),
       monthlyTrend,
       countries,
       keyInsights: [
-        `${totalResponses} total customer responses analyzed (fake emails filtered)`,
+        `${allLeads.length} total customer responses with valid queries analyzed`,
         `${topCities[0]?.name || 'N/A'} leads with ${topCities[0]?.count || 0} responses (${topCities[0]?.percentage || 0}%)`,
         `${queryTypes[0]?.count || 0} purchase inquiries indicating strong buying intent`,
         `${countries.length} countries represented showing global reach`,
         `${monthlyTrend.slice(-3).reduce((sum, m) => sum + m.responses, 0)} responses in last 3 months`,
         `Geographic concentration in major tech cities indicates target market alignment`,
         `Business partnership inquiries suggest B2B growth opportunities`,
-        `International responses indicate potential for global expansion`
+        `International responses indicate potential for global expansion`,
+        `Advanced query filtering ensures only meaningful customer inquiries are analyzed`
       ],
       recentLeads: allLeads.length > 0 ? allLeads : [
-        { name: "No data found", email: "N/A", phone_number: "N/A", query: "Add more data to see customer leads", city: "N/A", date: "N/A" }
+        { name: "No valid data found", email: "N/A", phone_number: "N/A", query: "Add more data with valid queries to see customer leads", queryPreview: "N/A", city: "N/A", date: "N/A" }
       ]
     };
   };
@@ -201,7 +271,7 @@ export default function CautioDashboard() {
   const fetchLiveData = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Fetching data from Google Sheets...');
+      console.log('🔄 Fetching live data from Google Sheets...');
       
       const csvUrl = `https://docs.google.com/spreadsheets/d/${sourceSheetId}/export?format=csv&gid=0`;
       const response = await fetch(csvUrl);
@@ -276,38 +346,13 @@ export default function CautioDashboard() {
       console.log('- Fake emails filtered:', fakeFiltered);
       console.log('- Valid rows added:', validAdded);
       console.log('- Final dataset size:', rawData.length);
-      console.log('🎯 FINAL VALID CUSTOMER COUNT:', rawData.length);
       
-      // Final verification - check if any fake emails remain
-      const remainingFakeEmails = rawData.filter(row => isFakeEmail(row.email));
-      
-      if (remainingFakeEmails.length > 0) {
-        console.log('⚠️ WARNING: Fake emails still in data:', remainingFakeEmails.length);
-        remainingFakeEmails.forEach((row, index) => {
-          console.log(`Remaining fake email ${index + 1}:`, row.email, '| Name:', row.name);
-        });
-        
-        // Remove them manually if they somehow got through
-        const cleanedData = rawData.filter(row => !isFakeEmail(row.email));
-        console.log('🧹 Manual cleanup: Removed', rawData.length - cleanedData.length, 'fake emails');
-        
-        if (cleanedData.length === 0) {
-          throw new Error('No valid data found after filtering');
-        }
-        
-        const analyzedData = analyzeData(cleanedData);
-        setDashboardData(analyzedData);
-      } else {
-        console.log('✅ SUCCESS: All fake emails filtered out successfully!');
-        
-        if (rawData.length === 0) {
-          throw new Error('No valid data found');
-        }
-        
-        const analyzedData = analyzeData(rawData);
-        setDashboardData(analyzedData);
+      if (rawData.length === 0) {
+        throw new Error('No valid data found');
       }
       
+      const analyzedData = analyzeData(rawData);
+      setDashboardData(analyzedData);
       setLastUpdated(new Date().toLocaleString());
       
     } catch (error) {
@@ -320,6 +365,13 @@ export default function CautioDashboard() {
           { name: "Bengaluru", count: 32, percentage: 32 },
           { name: "Hyderabad", count: 8, percentage: 8 },
           { name: "Mumbai", count: 7, percentage: 7 }
+        ],
+        allCities: [
+          { name: "Bengaluru", count: 32, percentage: 32 },
+          { name: "Hyderabad", count: 8, percentage: 8 },
+          { name: "Mumbai", count: 7, percentage: 7 },
+          { name: "Delhi", count: 5, percentage: 5 },
+          { name: "Chennai", count: 4, percentage: 4 }
         ],
         queryTypes: [
           { type: "Purchase Inquiry", count: 45, percentage: 65, color: "#3B82F6" },
@@ -342,7 +394,7 @@ export default function CautioDashboard() {
           "This is sample data for demonstration"
         ],
         recentLeads: [
-          { name: "Sheet Access Error", email: "N/A", phone_number: "N/A", query: "Make Google Sheet public to see live data", city: "N/A", date: "N/A" }
+          { name: "Sheet Access Error", email: "N/A", phone_number: "N/A", query: "Make Google Sheet public to see live data", queryPreview: "Make Google Sheet public...", city: "N/A", date: "N/A" }
         ]
       });
     }
@@ -404,13 +456,50 @@ export default function CautioDashboard() {
     }, 100);
   };
 
+  const handleQueryClick = (query) => {
+    setSelectedQuery(query);
+    setShowQueryModal(true);
+  };
+
+  // Query Modal Component
+  const QueryModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">Customer Query</h3>
+          <button
+            onClick={() => setShowQueryModal(false)}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+              {selectedQuery}
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end p-6 border-t">
+          <button
+            onClick={() => setShowQueryModal(false)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (!dashboardData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading and filtering live customer data...</p>
-          <p className="text-sm text-gray-500 mt-2">Removing fake emails and processing responses...</p>
+          <p className="text-sm text-gray-500 mt-2">Processing valid queries from sheet...</p>
         </div>
       </div>
     );
@@ -443,7 +532,7 @@ export default function CautioDashboard() {
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
-            {['overview', 'insights'].map((tab) => (
+            {['overview', 'all-cities', 'insights'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -453,7 +542,7 @@ export default function CautioDashboard() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'all-cities' ? 'All Cities' : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </nav>
@@ -495,26 +584,26 @@ export default function CautioDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               icon={Users} 
-              title="Total Responses" 
+              title="Total Valid Responses" 
               value={dashboardData.totalResponses} 
-              subtitle="Valid customer inquiries" 
+              subtitle="Customers with proper queries" 
               description="View all customer data"
               onClick={handleAllResponsesClick}
               clickable={true}
             />
             <StatCard 
               icon={MessageSquare} 
-              title="Query Types" 
-              value={dashboardData.queryTypes.length} 
-              subtitle={`${dashboardData.queryTypes[0]?.count || 0} purchase inquiries`}
-              description="Filter by inquiry type"
-              onClick={() => handleQueryTypeClick(dashboardData.queryTypes[0])}
+              title="Purchase Inquiries" 
+              value={dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.count || 0}
+              subtitle={`${dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.percentage || 0}% of total queries`}
+              description="Direct buying interest"
+              onClick={() => handleQueryTypeClick(dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry'))}
               clickable={true}
             />
             <StatCard 
               icon={MapPin} 
-              title="Top Cities" 
-              value={`${dashboardData.topCities.length} Cities`} 
+              title="Geographic Reach" 
+              value={`${dashboardData.allCities.length} Cities`} 
               subtitle={`${dashboardData.topCities[0]?.name || 'N/A'} leads with ${dashboardData.topCities[0]?.count || 0}`}
               description="Jump to cities analysis"
               onClick={handleTopCitiesClick}
@@ -578,41 +667,6 @@ export default function CautioDashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <div className="font-semibold text-blue-600 mb-1">Total Responses</div>
-                <div className="text-2xl font-bold text-blue-800">
-                  {dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0)}
-                </div>
-                <div className="text-xs text-blue-600">Last 12 months</div>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg text-center">
-                <div className="font-semibold text-green-600 mb-1">Recent Quarter</div>
-                <div className="text-2xl font-bold text-green-800">
-                  {dashboardData.monthlyTrend.slice(-3).reduce((sum, m) => sum + m.responses, 0)}
-                </div>
-                <div className="text-xs text-green-600">Last 3 months</div>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg text-center">
-                <div className="font-semibold text-purple-600 mb-1">Peak Performance</div>
-                <div className="text-2xl font-bold text-purple-800">
-                  {Math.max(...dashboardData.monthlyTrend.map(m => m.responses))}
-                </div>
-                <div className="text-xs text-purple-600">Highest month</div>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-lg text-center">
-                <div className="font-semibold text-orange-600 mb-1">Monthly Average</div>
-                <div className="text-2xl font-bold text-orange-800">
-                  {Math.round(dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0) / dashboardData.monthlyTrend.length)}
-                </div>
-                <div className="text-xs text-orange-600">Average per month</div>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
-                💡 <strong>Insight:</strong> Use this trend data to plan marketing campaigns, allocate resources, and predict future customer inquiry volumes.
-              </p>
-            </div>
           </div>
 
           {/* Top Cities Bar Chart - Clickable */}
@@ -700,7 +754,20 @@ export default function CautioDashboard() {
                             <td className="py-3 px-2 font-medium text-gray-900">{lead.name}</td>
                             <td className="py-3 px-2 text-gray-600 text-sm">{lead.email}</td>
                             <td className="py-3 px-2 text-gray-600 text-sm">{lead.phone_number}</td>
-                            <td className="py-3 px-2 text-gray-600 text-sm max-w-xs">{lead.query}</td>
+                            <td className="py-3 px-2 text-gray-600 text-sm max-w-xs">
+                              <div className="flex items-center space-x-2">
+                                <span className="flex-1">{lead.queryPreview}</span>
+                                {lead.query && lead.query !== 'N/A' && (
+                                  <button
+                                    onClick={() => handleQueryClick(lead.query)}
+                                    className="text-blue-600 hover:text-blue-800 flex-shrink-0"
+                                    title="View full query"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
                             <td className="py-3 px-2 text-gray-600 text-sm">{lead.city}</td>
                             <td className="py-3 px-2 text-gray-600 text-sm">{lead.date}</td>
                           </tr>
@@ -780,6 +847,139 @@ export default function CautioDashboard() {
         </div>
       )}
 
+      {activeTab === 'all-cities' && (
+        <div className="space-y-6">
+          {/* All Cities Analysis */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold mb-6 flex items-center">
+              <MapPin className="h-5 w-5 mr-2 text-blue-600" />
+              Complete Cities Analysis - All {dashboardData.allCities.length} Cities
+            </h3>
+            
+            {/* Cities Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+              {dashboardData.allCities.map((city, index) => (
+                <div 
+                  key={city.name}
+                  className={`p-4 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md ${
+                    selectedCity === city.name 
+                      ? 'bg-blue-50 border-blue-500 shadow-md' 
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => handleCityClick(city)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">{city.name}</h4>
+                      <p className="text-2xl font-bold text-blue-600 mb-1">{city.count}</p>
+                      <p className="text-sm text-gray-600">{city.percentage}% of total</p>
+                      {index < 3 && (
+                        <div className="mt-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                            index === 1 ? 'bg-gray-100 text-gray-800' :
+                            'bg-orange-100 text-orange-800'
+                          }`}>
+                            #{index + 1} Top City
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        selectedCity === city.name ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}>
+                        <MapPin className={`h-6 w-6 ${
+                          selectedCity === city.name ? 'text-white' : 'text-gray-600'
+                        }`} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Cities Bar Chart */}
+            <div className="mt-8">
+              <h4 className="text-md font-semibold mb-4">All Cities Response Distribution</h4>
+              <ResponsiveContainer width="100%" height={500}>
+                <BarChart 
+                  data={dashboardData.allCities} 
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 11 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    formatter={(value, name, props) => [
+                      `${value} responses (${props.payload.percentage}% of total)`, 
+                      'Customer Inquiries'
+                    ]}
+                    labelFormatter={(label) => `City: ${label}`}
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="#3B82F6"
+                    name="City Responses"
+                    onClick={handleCityClick}
+                    cursor="pointer"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* City Statistics */}
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-blue-600 mb-1">Total Cities</div>
+                <div className="text-2xl font-bold text-blue-800">{dashboardData.allCities.length}</div>
+                <div className="text-xs text-blue-600">Geographic reach</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-green-600 mb-1">Top 3 Cities</div>
+                <div className="text-2xl font-bold text-green-800">
+                  {dashboardData.allCities.slice(0, 3).reduce((sum, city) => sum + city.percentage, 0)}%
+                </div>
+                <div className="text-xs text-green-600">of total responses</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-purple-600 mb-1">Leading City</div>
+                <div className="text-2xl font-bold text-purple-800">{dashboardData.allCities[0]?.count || 0}</div>
+                <div className="text-xs text-purple-600">{dashboardData.allCities[0]?.name || 'N/A'}</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg text-center">
+                <div className="font-semibold text-orange-600 mb-1">Average per City</div>
+                <div className="text-2xl font-bold text-orange-800">
+                  {Math.round(dashboardData.allCities.reduce((sum, city) => sum + city.count, 0) / dashboardData.allCities.length)}
+                </div>
+                <div className="text-xs text-orange-600">responses per city</div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                💡 <strong>Insight:</strong> Click on any city card or bar to filter customer leads. Geographic distribution shows strong urban concentration with opportunities for expansion.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'insights' && (
         <div className="space-y-6">
           {/* Key Insights */}
@@ -795,7 +995,32 @@ export default function CautioDashboard() {
             </div>
           </div>
 
-          {/* Detailed Business Intelligence */}
+          {/* Query Quality Analysis */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold mb-4 text-indigo-700">🔍 Query Quality & Filtering Analysis</h3>
+            <div className="space-y-4">
+              <div className="border-l-4 border-indigo-500 pl-4">
+                <h4 className="font-semibold text-gray-800">Advanced Query Validation</h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Implemented intelligent filtering to process English, Hinglish, and Hindi queries. Only meaningful customer inquiries with valid sentence structure are included in the analysis.
+                </p>
+              </div>
+              <div className="border-l-4 border-green-500 pl-4">
+                <h4 className="font-semibold text-gray-800">Data Quality Improvement</h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  {dashboardData.originalTotal ? `Processed ${dashboardData.originalTotal} raw entries, filtered to ${dashboardData.totalResponses} valid customer queries` : 'Advanced filtering ensures only legitimate customer inquiries are analyzed'}, removing test data, spam, and incomplete entries.
+                </p>
+              </div>
+              <div className="border-l-4 border-blue-500 pl-4">
+                <h4 className="font-semibold text-gray-800">Multi-language Support</h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Query validation supports multiple languages and formats including pure English, Hinglish (Hindi-English mix), and Hindi Devanagari script, ensuring comprehensive customer inquiry analysis.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rest of insights content remains the same... */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Customer Behavior Analysis */}
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -847,104 +1072,11 @@ export default function CautioDashboard() {
               </div>
             </div>
           </div>
-
-          {/* Executive Summary Report */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4">📋 Executive Summary & Strategic Recommendations</h3>
-            <div className="space-y-6">
-              
-              <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-                <h4 className="font-semibold text-green-800 mb-3">🚀 Business Strengths & Opportunities</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <ul className="list-disc list-inside text-green-700 space-y-2">
-                    <li><strong>Strong Purchase Intent:</strong> {Math.round((dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.count || 0) / dashboardData.totalResponses * 100)}% direct buying inquiries</li>
-                    <li><strong>Geographic Focus:</strong> Concentrated in tech hubs like {dashboardData.topCities.slice(0,2).map(c => c.name).join(' and ')}</li>
-                    <li><strong>Brand Recognition:</strong> Partnership and job inquiries show growing reputation</li>
-                  </ul>
-                  <ul className="list-disc list-inside text-green-700 space-y-2">
-                    <li><strong>Data Quality:</strong> Clean, actionable customer contact information</li>
-                    <li><strong>Market Validation:</strong> Consistent monthly response volume</li>
-                    <li><strong>International Interest:</strong> Multi-country presence established</li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                <h4 className="font-semibold text-blue-800 mb-3">📈 Strategic Action Items</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <h5 className="font-medium text-blue-700 mb-2">Immediate Actions (0-30 days):</h5>
-                    <ul className="list-disc list-inside text-blue-600 space-y-1">
-                      <li>Implement automated lead scoring system</li>
-                      <li>Create dedicated B2B partnership process</li>
-                      <li>Set up immediate follow-up for purchase inquiries</li>
-                      <li>Develop city-specific marketing campaigns</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-blue-700 mb-2">Strategic Initiatives (30-90 days):</h5>
-                    <ul className="list-disc list-inside text-blue-600 space-y-1">
-                      <li>Launch targeted campaigns in tier-2 cities</li>
-                      <li>Develop international expansion strategy</li>
-                      <li>Create industry-specific product offerings</li>
-                      <li>Implement advanced analytics and conversion tracking</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-                <h4 className="font-semibold text-yellow-800 mb-3">⚠️ Areas for Optimization</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <h5 className="font-medium text-yellow-700 mb-2">Lead Management:</h5>
-                    <ul className="list-disc list-inside text-yellow-600 space-y-1">
-                      <li>Response time optimization</li>
-                      <li>Lead nurturing automation</li>
-                      <li>Conversion rate tracking</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-yellow-700 mb-2">Market Expansion:</h5>
-                    <ul className="list-disc list-inside text-yellow-600 space-y-1">
-                      <li>Tier-2 city penetration</li>
-                      <li>International market entry</li>
-                      <li>Rural market exploration</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-yellow-700 mb-2">Customer Experience:</h5>
-                    <ul className="list-disc list-inside text-yellow-600 space-y-1">
-                      <li>Website optimization</li>
-                      <li>Multi-language support</li>
-                      <li>Mobile experience enhancement</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                <h4 className="font-semibold text-purple-800 mb-3">🔮 Future Growth Projections</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <h5 className="font-medium text-purple-700 mb-2">Revenue Potential:</h5>
-                    <p className="text-purple-600">
-                      Based on current {Math.round(dashboardData.monthlyTrend.reduce((sum, m) => sum + m.responses, 0) / dashboardData.monthlyTrend.length)} average monthly inquiries and {Math.round((dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.count || 0) / dashboardData.totalResponses * 100)}% purchase intent, estimated monthly revenue potential with proper conversion optimization.
-                    </p>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-purple-700 mb-2">Market Expansion:</h5>
-                    <p className="text-purple-600">
-                      Geographic concentration suggests untapped potential in {10 - dashboardData.topCities.length}+ additional cities, with international markets showing early-stage interest for future expansion.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
         </div>
       )}
+
+      {/* Query Modal */}
+      {showQueryModal && <QueryModal />}
     </div>
   );
 }
