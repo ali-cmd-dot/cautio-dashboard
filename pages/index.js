@@ -27,20 +27,30 @@ export default function CautioDashboard() {
       'example@example.com',
       'rohit@cautio.in'
     ];
-    return fakeEmails.includes(cleanEmail) || cleanEmail.includes('test') || cleanEmail === '';
+    
+    // Check against known fake emails
+    if (fakeEmails.includes(cleanEmail)) return true;
+    
+    // Check for test patterns
+    if (cleanEmail.includes('test') || cleanEmail.includes('fake') || cleanEmail.includes('spam')) return true;
+    
+    // Check for empty or invalid format
+    if (!cleanEmail || cleanEmail === '' || !cleanEmail.includes('@')) return true;
+    
+    return false;
   };
 
-  // Enhanced query validation
+  // Enhanced query validation to filter out gibberish
   const isValidQuery = (query) => {
     if (!query || typeof query !== 'string') return false;
     
     const cleanQuery = query.trim();
     
-    // Must be at least 8 characters for meaningful query
-    if (cleanQuery.length < 8) return false;
+    // Must be at least 10 characters for meaningful query
+    if (cleanQuery.length < 10) return false;
     
-    // Filter out invalid patterns
-    const invalidPatterns = [
+    // Filter out gibberish patterns
+    const gibberishPatterns = [
       /^test\s*$/i,
       /^testing\s*$/i,
       /^hello\s*$/i,
@@ -52,23 +62,50 @@ export default function CautioDashboard() {
       /^\d+\s*$/,
       /^seamless installation\s*$/i,
       /^precise fabrication\s*$/i,
-      /^creative design\s*$/i
+      /^creative design\s*$/i,
+      // Gibberish patterns - too many repeated characters or random letter combinations
+      /^[bcdfghjklmnpqrstvwxyz]{4,}/i, // Too many consonants in a row
+      /^[aeiou]{4,}/i, // Too many vowels in a row  
+      /(.)\1{3,}/, // Same character repeated 4+ times
+      /^[a-z]{1,2}\s[a-z]{1,2}\s/i, // Single/double letter words
+      /^[bcdghkmnpqrstvwxyz]+\s[bcdghkmnpqrstvwxyz]+/i, // Consonant-only words
+      /^[^aeiou\s]{8,}/i, // 8+ characters without vowels
+      /[bcdfghjklmnpqrstvwxyz]{5,}/i, // 5+ consecutive consonants
+      /^[a-z]{2,3}[a-z]{2,3}[a-z]{2,3}/i, // Repetitive pattern like "bbdnbdh"
     ];
     
-    // Check against invalid patterns
-    for (const pattern of invalidPatterns) {
-      if (pattern.test(cleanQuery)) return false;
+    // Check against gibberish patterns
+    for (const pattern of gibberishPatterns) {
+      if (pattern.test(cleanQuery)) {
+        console.log('🚫 Filtered gibberish:', cleanQuery);
+        return false;
+      }
     }
     
-    // Must contain meaningful words
+    // Must contain meaningful English/Hindi words
     const words = cleanQuery.split(/\s+/).filter(word => word.length >= 3);
     if (words.length < 3) return false;
     
+    // Check for vowel distribution - real words have vowels
+    const vowelCount = (cleanQuery.match(/[aeiouAEIOU\u0905-\u0914]/g) || []).length;
+    const totalLetters = (cleanQuery.match(/[a-zA-Z\u0900-\u097F]/g) || []).length;
+    if (totalLetters > 0 && vowelCount / totalLetters < 0.15) { // Less than 15% vowels = likely gibberish
+      console.log('🚫 Filtered low vowel ratio:', cleanQuery);
+      return false;
+    }
+    
     // Check for actual sentences with proper structure
-    const hasQuestionWords = /\b(what|how|when|where|why|can|could|would|will|need|want|looking|interested|buy|purchase|price|cost)\b/i.test(cleanQuery);
+    const hasQuestionWords = /\b(what|how|when|where|why|can|could|would|will|need|want|looking|interested|buy|purchase|price|cost|dashcam|camera|car|vehicle)\b/i.test(cleanQuery);
     const hasProperSentence = cleanQuery.includes('?') || cleanQuery.includes('.') || hasQuestionWords;
     
     if (!hasProperSentence) return false;
+    
+    // Final check - must contain at least one recognizable English/business word
+    const businessWords = /\b(buy|purchase|price|cost|need|want|interested|looking|dashcam|camera|car|vehicle|business|partnership|job|work|help|support|inquiry|question|please|can|how|what|when|where)\b/i;
+    if (!businessWords.test(cleanQuery)) {
+      console.log('🚫 No recognizable business words:', cleanQuery);
+      return false;
+    }
     
     return true;
   };
@@ -399,15 +436,21 @@ export default function CautioDashboard() {
           row[mappedHeader] = values[index] || '';
         });
         
-        // Enhanced validation
+        // Enhanced validation - stricter checking
         const name = (row.name || '').trim();
         const email = (row.email || '').trim();
         const query = (row.query || '').trim();
         
-        // Skip invalid entries
-        if (!name || name.length <= 1 || name.toLowerCase() === 'name') continue;
+        // Skip invalid entries with stricter validation
+        if (!name || name.length <= 2 || name.toLowerCase() === 'name') continue;
         if (isFakeEmail(email)) continue;
         if (!isValidQuery(query)) continue;
+        
+        // Additional check - if name looks valid but query is gibberish, skip
+        if (name.length > 2 && !isValidQuery(query)) {
+          console.log('🚫 Valid name but invalid query:', name, '|', query.substring(0, 50));
+          continue;
+        }
         
         // Clean up data
         row.name = name;
@@ -755,24 +798,34 @@ export default function CautioDashboard() {
               {/* Custom India Map Visualization */}
               <div className="relative">
                 <ResponsiveContainer width="100%" height={500}>
-                  <ComposedChart
+                  <ScatterChart
                     data={dashboardData.cityMapData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <CartesianGrid strokeDasharray="2 2" stroke="#e0e4e7" />
                     <XAxis 
                       dataKey="lng"
                       type="number"
                       domain={[68, 97]} // India longitude range
-                      tick={{ fontSize: 12 }}
-                      label={{ value: 'Longitude (°E)', position: 'insideBottom', offset: -10, style: { textAnchor: 'middle', fontWeight: 'bold' } }}
+                      tick={{ fontSize: 11, fontWeight: 'bold' }}
+                      label={{ 
+                        value: 'Longitude (°E)', 
+                        position: 'insideBottom', 
+                        offset: -10, 
+                        style: { textAnchor: 'middle', fontWeight: 'bold', fill: '#374151' } 
+                      }}
                     />
                     <YAxis 
                       dataKey="lat"
-                      type="number"
+                      type="number" 
                       domain={[6, 37]} // India latitude range
-                      tick={{ fontSize: 12 }}
-                      label={{ value: 'Latitude (°N)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontWeight: 'bold' } }}
+                      tick={{ fontSize: 11, fontWeight: 'bold' }}
+                      label={{ 
+                        value: 'Latitude (°N)', 
+                        angle: -90, 
+                        position: 'insideLeft', 
+                        style: { textAnchor: 'middle', fontWeight: 'bold', fill: '#374151' } 
+                      }}
                     />
                     <Tooltip 
                       formatter={(value, name, props) => {
@@ -790,19 +843,18 @@ export default function CautioDashboard() {
                         backgroundColor: '#ffffff',
                         border: '2px solid #3b82f6',
                         borderRadius: '12px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                         fontWeight: 'bold'
                       }}
                     />
-                    <Bar 
+                    <Scatter 
                       dataKey="count"
                       fill="#3b82f6"
-                      radius={50}
                       onClick={(data) => handleCityClick({name: data.name})}
                       cursor="pointer"
                       name="count"
                     />
-                  </ComposedChart>
+                  </ScatterChart>
                 </ResponsiveContainer>
                 
                 {/* City Labels */}
