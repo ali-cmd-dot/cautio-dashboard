@@ -154,35 +154,35 @@ export default function CautioDashboard() {
     
     console.log('📊 Analyzing', totalResponses, 'responses after filtering');
     
-    // Enhanced city analysis
+    // Enhanced city analysis with proper total counting
     const cityCount = {};
-    const cityData = [];
-    
-    rawData.forEach(row => {
+    const totalResponsesWithValidCities = rawData.filter(row => {
       const city = (row.city || '').trim();
-      
-      if (city && city.length > 2 && 
-          city !== 'English' && 
-          city !== 'language' &&
-          city !== 'N/A' &&
-          !city.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && 
-          /^[a-zA-Z\s\-\.]+$/.test(city)) {
-        
-        cityCount[city] = (cityCount[city] || 0) + 1;
-      }
+      return city && city.length > 2 && 
+             city !== 'English' && 
+             city !== 'language' &&
+             city !== 'N/A' &&
+             !city.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && 
+             /^[a-zA-Z\s\-\.]+$/.test(city);
     });
 
-    // Create city data with coordinates
+    totalResponsesWithValidCities.forEach(row => {
+      const city = (row.city || '').trim();
+      cityCount[city] = (cityCount[city] || 0) + 1;
+    });
+
+    // Create city data with coordinates - only include cities with valid data
+    const cityData = [];
     Object.entries(cityCount).forEach(([city, count]) => {
       const coords = cityCoordinates[city] || { lat: 20 + Math.random() * 10, lng: 75 + Math.random() * 10, region: 'Other' };
       cityData.push({
         name: city,
         count,
-        percentage: Math.round((count / totalResponses) * 100),
+        percentage: Math.round((count / totalResponses) * 100), // Use total responses for percentage
         lat: coords.lat,
         lng: coords.lng,
         region: coords.region,
-        size: Math.max(8, Math.min(50, count * 3)) // Dynamic size for visualization
+        size: Math.max(8, Math.min(50, count * 3))
       });
     });
 
@@ -191,6 +191,20 @@ export default function CautioDashboard() {
       .slice(0, 10);
 
     const allCities = cityData.sort((a, b) => b.count - a.count);
+
+    // Add summary for responses without city data
+    const responsesWithoutCity = totalResponses - totalResponsesWithValidCities.length;
+    if (responsesWithoutCity > 0) {
+      topCities.push({
+        name: 'Other Locations',
+        count: responsesWithoutCity,
+        percentage: Math.round((responsesWithoutCity / totalResponses) * 100),
+        lat: 0,
+        lng: 0,
+        region: 'Unknown',
+        size: Math.max(8, Math.min(50, responsesWithoutCity * 3))
+      });
+    }
 
     // Country analysis
     const countryCount = {};
@@ -813,9 +827,9 @@ export default function CautioDashboard() {
                           onClick={() => handleCityClick(city)}
                         />
                         
-                        {/* City node */}
+                        {/* City node - NO HOVER EFFECTS */}
                         <g 
-                          className="cursor-pointer transition-opacity hover:opacity-100"
+                          className="cursor-pointer"
                           onClick={() => handleCityClick(city)}
                         >
                           {/* City circle */}
@@ -827,7 +841,6 @@ export default function CautioDashboard() {
                             stroke="#ffffff"
                             strokeWidth="2"
                             filter="url(#glow)"
-                            className="transition-colors"
                           />
                           
                           {/* Response count inside circle */}
@@ -845,7 +858,7 @@ export default function CautioDashboard() {
                             x={x}
                             y={y - Math.max(8, Math.min(20, city.count * 1.5)) - 8}
                             textAnchor="middle"
-                            className={`text-sm font-bold pointer-events-none transition-colors ${
+                            className={`text-sm font-bold pointer-events-none ${
                               selectedCity === city.name ? 'fill-red-400' : 'fill-blue-300'
                             }`}
                           >
@@ -859,7 +872,7 @@ export default function CautioDashboard() {
                             textAnchor="middle"
                             className="fill-gray-400 text-xs pointer-events-none"
                           >
-                            {city.percentage}%
+                            {city.percentage}% ({city.count})
                           </text>
                         </g>
                       </g>
@@ -987,9 +1000,10 @@ export default function CautioDashboard() {
               {/* Instructions */}
               <div className="absolute top-4 left-4 bg-slate-800 bg-opacity-90 p-3 rounded-lg text-white">
                 <p className="text-sm">
-                  <span className="text-green-300 font-bold">🏢 Bangalore HQ</span> connected to all customer cities
+                  <span className="text-green-300 font-bold">🏢 Bangalore HQ</span> connected to all response locations
                 </p>
-                <p className="text-xs text-gray-300 mt-1">Click any city to filter customer leads</p>
+                <p className="text-xs text-gray-300 mt-1">Click any city to filter website responses</p>
+                <p className="text-xs text-blue-300 mt-1">Total Map Count: {topCities.reduce((sum, city) => sum + city.count, 0)} responses</p>
               </div>
             </div>
             
