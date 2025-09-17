@@ -761,11 +761,11 @@ export default function CautioDashboard() {
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-6 flex items-center">
               <Globe className="h-7 w-7 mr-3 text-blue-600" />
-              India Customer Network Map
+              India Website Response Network Map
             </h3>
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
               <p className="text-sm text-blue-700 font-medium">
-                🌐 Network Map: Bangalore (HQ) connected to all customer cities. Click any city to filter leads.
+                🌐 Network Map: Bangalore (HQ) connected to all inquiry locations. Click any city to filter website responses.
               </p>
             </div>
             
@@ -815,7 +815,7 @@ export default function CautioDashboard() {
                         
                         {/* City node */}
                         <g 
-                          className="cursor-pointer transform-origin-center hover:scale-110 transition-transform"
+                          className="cursor-pointer transition-opacity hover:opacity-100"
                           onClick={() => handleCityClick(city)}
                         >
                           {/* City circle */}
@@ -971,15 +971,15 @@ export default function CautioDashboard() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 bg-blue-500 rounded-full border border-white"></div>
-                    <span>Customer cities</span>
+                    <span>Response locations</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 bg-red-500 rounded-full border border-white"></div>
-                    <span>Selected city</span>
+                    <span>Selected location</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-1 bg-blue-400 opacity-60"></div>
-                    <span>Connections</span>
+                    <span>Network connections</span>
                   </div>
                 </div>
               </div>
