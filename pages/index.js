@@ -211,13 +211,14 @@ export default function CautioDashboard() {
             name === 'USA' ? '🇺🇸' : name === 'Canada' ? '🇨🇦' : name === 'United Kingdom' ? '🇬🇧' : '🏳️'
     }));
 
-    // Enhanced query analysis
+    // Enhanced query analysis with better categorization
     const queryCategories = {
-      'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'dash cam', 'cost', 'order', 'enquire', 'inquiry', 'interested', 'single unit', 'looking to buy'],
-      'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution', 'dealer', 'distributor', 'franchise', 'exhibiting'],
-      'Job/Internship': ['job', 'internship', 'career', 'hiring', 'opportunity', 'work', 'hr team', 'employment'],
+      'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'dash cam', 'cost', 'order', 'enquire', 'inquiry', 'interested', 'single unit', 'looking to buy', 'required', 'need dashcam', 'want to buy', 'looking for', 'personal use'],
+      'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution', 'dealer', 'distributor', 'franchise', 'exhibiting', 'rental', 'fleet', 'platform'],
+      'Job/Internship': ['job', 'internship', 'career', 'hiring', 'opportunity', 'work', 'hr team', 'employment', 'kia carens', 'gravity', 'device'],
       'Investment/Funding': ['funding', 'investment', 'venture', 'capital', 'investor'],
-      'Technical Support': ['support', 'help', 'issue', 'problem', 'technical', 'installation'],
+      'Technical Support': ['support', 'help', 'issue', 'problem', 'technical', 'installation', 'surveillance', 'hospital', 'solution'],
+      'Fleet Management': ['fleet', 'rental', 'platform', '3000 car', 'multiple', 'commercial'],
       'Others': []
     };
 
@@ -738,7 +739,7 @@ export default function CautioDashboard() {
               icon={ShoppingCart} 
               title="Purchase Inquiries" 
               value={dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.count || 0}
-              subtitle={`${dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.percentage || 0}% ready to buy customers`}
+              subtitle={`${dashboardData.queryTypes.find(qt => qt.type === 'Purchase Inquiry')?.percentage || 0}% ready-to-buy customers`}
               description="Filter by purchase intent"
               onClick={handlePurchaseInquiriesClick}
               clickable={true}
@@ -769,67 +770,159 @@ export default function CautioDashboard() {
                 </p>
               </div>
               
-              {/* Custom India Map Visualization */}
-              <div className="relative">
-                <ResponsiveContainer width="100%" height={500}>
-                  <ScatterChart
-                    data={dashboardData.cityMapData}
-                    margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
-                  >
-                    <CartesianGrid strokeDasharray="2 2" stroke="#e0e4e7" />
-                    <XAxis 
-                      dataKey="lng"
-                      type="number"
-                      domain={[68, 97]} // India longitude range
-                      tick={{ fontSize: 11, fontWeight: 'bold' }}
-                      label={{ 
-                        value: 'Longitude (°E)', 
-                        position: 'insideBottom', 
-                        offset: -10, 
-                        style: { textAnchor: 'middle', fontWeight: 'bold', fill: '#374151' } 
-                      }}
-                    />
-                    <YAxis 
-                      dataKey="lat"
-                      type="number" 
-                      domain={[6, 37]} // India latitude range
-                      tick={{ fontSize: 11, fontWeight: 'bold' }}
-                      label={{ 
-                        value: 'Latitude (°N)', 
-                        angle: -90, 
-                        position: 'insideLeft', 
-                        style: { textAnchor: 'middle', fontWeight: 'bold', fill: '#374151' } 
-                      }}
-                    />
-                    <Tooltip 
-                      formatter={(value, name, props) => {
-                        if (name === 'count') return [`${value} customer responses`, 'Total Inquiries'];
-                        return [value, name];
-                      }}
-                      labelFormatter={(value, payload) => {
-                        if (payload && payload[0]) {
-                          const data = payload[0].payload;
-                          return `📍 ${data.name} (${data.region} India)`;
-                        }
-                        return '';
-                      }}
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: '2px solid #3b82f6',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-                        fontWeight: 'bold'
-                      }}
-                    />
-                    <Scatter 
-                      dataKey="count"
-                      fill="#3b82f6"
-                      onClick={(data) => handleCityClick({name: data.name})}
-                      cursor="pointer"
-                      name="count"
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
+              {/* Enhanced India Map Visualization with City Labels */}
+              <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6">
+                
+                {/* Map Container */}
+                <div className="relative w-full h-[500px] bg-white rounded-lg border-2 border-blue-200 shadow-inner">
+                  
+                  {/* India Map Background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg opacity-30"></div>
+                  
+                  {/* Map Title */}
+                  <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-full shadow-md border border-blue-200">
+                    <span className="text-sm font-bold text-blue-800">🇮🇳 India Customer Distribution</span>
+                  </div>
+                  
+                  {/* Coordinate Grid Lines */}
+                  <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+                    {/* Longitude lines */}
+                    {[70, 75, 80, 85, 90, 95].map(lng => (
+                      <line 
+                        key={`lng-${lng}`}
+                        x1={`${((lng - 68) / 29) * 100}%`} 
+                        y1="0%" 
+                        x2={`${((lng - 68) / 29) * 100}%`} 
+                        y2="100%" 
+                        stroke="#e5e7eb" 
+                        strokeDasharray="2,2"
+                        strokeWidth="1"
+                      />
+                    ))}
+                    {/* Latitude lines */}
+                    {[10, 15, 20, 25, 30, 35].map(lat => (
+                      <line 
+                        key={`lat-${lat}`}
+                        x1="0%" 
+                        y1={`${((37 - lat) / 31) * 100}%`} 
+                        x2="100%" 
+                        y2={`${((37 - lat) / 31) * 100}%`} 
+                        stroke="#e5e7eb" 
+                        strokeDasharray="2,2"
+                        strokeWidth="1"
+                      />
+                    ))}
+                  </svg>
+                  
+                  {/* City Points with Labels */}
+                  {dashboardData.cityMapData && dashboardData.cityMapData.map((city, index) => {
+                    const x = ((city.lng - 68) / 29) * 100; // Convert longitude to percentage
+                    const y = ((37 - city.lat) / 31) * 100; // Convert latitude to percentage
+                    const size = Math.max(12, Math.min(40, city.count * 2)); // Dynamic size
+                    
+                    return (
+                      <div key={city.name} className="absolute transform -translate-x-1/2 -translate-y-1/2 group">
+                        <div 
+                          style={{ 
+                            left: `${x}%`, 
+                            top: `${y}%`,
+                          }}
+                          className={`absolute cursor-pointer transition-all duration-300 hover:scale-125 ${
+                            selectedCity === city.name ? 'scale-125 z-20' : 'hover:z-10'
+                          }`}
+                          onClick={() => handleCityClick(city)}
+                        >
+                          {/* City Circle */}
+                          <div 
+                            className={`rounded-full border-4 border-white shadow-lg transition-all ${
+                              selectedCity === city.name 
+                                ? 'bg-red-500 border-red-300 shadow-red-200' 
+                                : 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
+                            }`}
+                            style={{ 
+                              width: `${size}px`, 
+                              height: `${size}px`,
+                              boxShadow: selectedCity === city.name 
+                                ? '0 8px 25px rgba(239, 68, 68, 0.4), 0 0 0 4px rgba(239, 68, 68, 0.2)' 
+                                : '0 4px 15px rgba(59, 130, 246, 0.3)'
+                            }}
+                          >
+                            {/* Response Count */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-white font-bold text-xs">
+                                {city.count}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* City Name Label */}
+                          <div className={`absolute top-full left-1/2 transform -translate-x-1/2 mt-2 transition-all ${
+                            selectedCity === city.name ? 'scale-110' : ''
+                          }`}>
+                            <div className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg border-2 ${
+                              selectedCity === city.name 
+                                ? 'bg-red-500 text-white border-red-300' 
+                                : 'bg-white text-gray-800 border-blue-200 group-hover:bg-blue-50'
+                            }`}>
+                              {city.name}
+                            </div>
+                            
+                            {/* Region Label */}
+                            <div className="text-center mt-1">
+                              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                                {city.region}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Pulse Animation for Selected City */}
+                          {selectedCity === city.name && (
+                            <div 
+                              className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20"
+                              style={{ 
+                                width: `${size}px`, 
+                                height: `${size}px`
+                              }}
+                            ></div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Map Legend */}
+                  <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg border border-blue-200">
+                    <h4 className="text-sm font-bold text-gray-800 mb-2">Legend</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
+                        <span className="text-xs text-gray-600">City with responses</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-blue-500 rounded-full border-2 border-white"></div>
+                        <span className="text-xs text-gray-600">Higher response count</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
+                        <span className="text-xs text-gray-600">Selected city</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Coordinates Labels */}
+                  <div className="absolute bottom-1 left-2 text-xs text-gray-500">68°E</div>
+                  <div className="absolute bottom-1 right-2 text-xs text-gray-500">97°E</div>
+                  <div className="absolute top-2 left-1 text-xs text-gray-500 transform -rotate-90">37°N</div>
+                  <div className="absolute bottom-8 left-1 text-xs text-gray-500 transform -rotate-90">6°N</div>
+                </div>
+                
+                {/* Map Instructions */}
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">
+                    🎯 <strong>Click on any city</strong> to filter customer leads • Circle size indicates response volume
+                  </p>
+                </div>
+              </div>
                 
                 {/* City Labels */}
                 <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
