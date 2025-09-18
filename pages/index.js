@@ -756,7 +756,7 @@ export default function CautioDashboard() {
             />
           </div>
 
-          {/* CONSTELLATION STYLE INDIA MAP */}
+          {/* BACKGROUND IMAGE INDIA MAP */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-6 flex items-center">
               <Globe className="h-7 w-7 mr-3 text-blue-600" />
@@ -764,22 +764,26 @@ export default function CautioDashboard() {
             </h3>
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
               <p className="text-sm text-blue-700 font-medium">
-                🇮🇳 Constellation Map: India network with customer response cities. Total responses: {dashboardData.totalResponses}
+                🇮🇳 India Network Map: Customer response cities on constellation background. Total responses: {dashboardData.totalResponses}
               </p>
             </div>
             
-            {/* CONSTELLATION STYLE INDIA MAP */}
-            <div className="relative w-full h-[1200px] bg-black rounded-xl overflow-hidden">
+            {/* LARGE BACKGROUND IMAGE MAP */}
+            <div 
+              className="relative w-full h-[1200px] rounded-xl overflow-hidden"
+              style={{
+                backgroundImage: `url('https://images.unsplash.com/photo-1446776877081-d282a0f896e2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }}
+            >
+              
+              {/* Dark overlay for better city visibility */}
+              <div className="absolute inset-0 bg-black bg-opacity-40"></div>
               
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1600 1200">
                 <defs>
-                  <filter id="starGlow">
-                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                    <feMerge> 
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
                   <filter id="cityGlow">
                     <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                     <feMerge> 
@@ -788,127 +792,69 @@ export default function CautioDashboard() {
                     </feMerge>
                   </filter>
                 </defs>
-                
-                {/* BACKGROUND STARS */}
-                {[...Array(100)].map((_, i) => (
-                  <circle
-                    key={`star-${i}`}
-                    cx={Math.random() * 1600}
-                    cy={Math.random() * 1200}
-                    r={Math.random() * 2 + 0.5}
-                    fill="#ffffff"
-                    opacity={Math.random() * 0.8 + 0.2}
-                    className="animate-pulse"
-                  />
-                ))}
-                
-                {/* INDIA CONSTELLATION OUTLINE */}
-                <g stroke="#4c8aff" strokeWidth="2" fill="none" opacity="0.8">
-                  {/* Main India border as connected dots */}
-                  <g>
-                    {/* Border constellation points */}
-                    {[
-                      [350, 200], [400, 180], [450, 170], [500, 165], [550, 162], [600, 160], 
-                      [650, 162], [700, 165], [750, 170], [800, 180], [850, 195], [900, 215],
-                      [940, 240], [970, 270], [990, 305], [1000, 340], [1005, 375], [1000, 410],
-                      [990, 445], [970, 480], [940, 510], [900, 535], [850, 555], [800, 570],
-                      [750, 580], [700, 585], [650, 580], [600, 570], [550, 555], [500, 535],
-                      [450, 510], [400, 480], [360, 445], [340, 410], [335, 375], [340, 340],
-                      [350, 305], [365, 270], [385, 240], [350, 200]
-                    ].map((point, index, array) => {
-                      const [x, y] = point;
-                      const nextPoint = array[(index + 1) % array.length];
-                      
-                      return (
-                        <g key={`border-${index}`}>
-                          {/* Constellation dot */}
-                          <circle cx={x} cy={y} r="3" fill="#4c8aff" filter="url(#starGlow)" opacity="0.9" />
-                          {/* Connection line to next point */}
-                          <line x1={x} y1={y} x2={nextPoint[0]} y2={nextPoint[1]} stroke="#4c8aff" strokeWidth="1" opacity="0.6" />
-                        </g>
-                      );
-                    })}
-                  </g>
-                  
-                  {/* Internal network lines creating constellation pattern */}
-                  <g stroke="#6366f1" strokeWidth="1" opacity="0.4">
-                    {/* Internal constellation connections */}
-                    <line x1="400" y1="300" x2="600" y2="350" />
-                    <line x1="600" y1="350" x2="800" y2="400" />
-                    <line x1="500" y1="400" x2="700" y2="450" />
-                    <line x1="700" y1="450" x2="900" y2="500" />
-                    <line x1="450" y1="500" x2="650" y2="550" />
-                    <line x1="650" y1="550" x2="850" y2="600" />
-                    <line x1="400" y1="300" x2="500" y2="400" />
-                    <line x1="600" y1="350" x2="700" y2="450" />
-                    <line x1="800" y1="400" x2="900" y2="500" />
-                    <line x1="500" y1="400" x2="650" y2="550" />
-                  </g>
-                </g>
 
-                {/* Customer Response Cities on the Constellation */}
+                {/* Customer Response Cities */}
                 {dashboardData.allCities && dashboardData.allCities.map((city, index) => {
                   let x = 800, y = 600; // Default center position
                   
-                  // Accurate positioning for major Indian cities on constellation map
+                  // Positioning cities on the background map
                   switch(city.name.toLowerCase()) {
                     case 'bengaluru':
                     case 'bangalore':
-                      x = 680; y = 550; break;
+                      x = 700; y = 750; break;
                     case 'mumbai':
-                      x = 480; y = 480; break;
+                      x = 500; y = 650; break;
                     case 'delhi':
                     case 'new delhi':
-                      x = 580; y = 250; break;
+                      x = 600; y = 350; break;
                     case 'hyderabad':
-                      x = 730; y = 480; break;
+                      x = 780; y = 650; break;
                     case 'chennai':
-                      x = 750; y = 580; break;
+                      x = 820; y = 800; break;
                     case 'kolkata':
-                      x = 880; y = 350; break;
+                      x = 950; y = 450; break;
                     case 'pune':
-                      x = 520; y = 480; break;
+                      x = 550; y = 650; break;
                     case 'ahmedabad':
-                      x = 420; y = 400; break;
+                      x = 450; y = 550; break;
                     case 'surat':
-                      x = 440; y = 430; break;
+                      x = 470; y = 580; break;
                     case 'jaipur':
-                      x = 520; y = 320; break;
+                      x = 550; y = 420; break;
                     case 'lucknow':
-                      x = 650; y = 320; break;
+                      x = 700; y = 420; break;
                     case 'kanpur':
-                      x = 630; y = 340; break;
+                      x = 680; y = 440; break;
                     case 'nagpur':
-                      x = 680; y = 420; break;
+                      x = 720; y = 550; break;
                     case 'indore':
-                      x = 600; y = 400; break;
+                      x = 630; y = 520; break;
                     case 'bhopal':
-                      x = 620; y = 380; break;
+                      x = 650; y = 500; break;
                     case 'visakhapatnam':
-                      x = 800; y = 480; break;
+                      x = 850; y = 650; break;
                     case 'patna':
-                      x = 820; y = 330; break;
+                      x = 870; y = 430; break;
                     case 'kochi':
-                      x = 600; y = 580; break;
+                      x = 650; y = 800; break;
                     case 'coimbatore':
-                      x = 700; y = 560; break;
+                      x = 750; y = 780; break;
                     case 'thane':
-                      x = 490; y = 490; break;
+                      x = 510; y = 660; break;
                     case 'pimpri':
-                      x = 530; y = 490; break;
+                      x = 560; y = 660; break;
                     default:
-                      // Place other cities within constellation bounds
-                      const row = Math.floor(index / 7);
-                      const col = index % 7;
-                      x = 400 + (col * 100);
-                      y = 280 + (row * 80);
+                      // Grid layout for other cities
+                      const row = Math.floor(index / 8);
+                      const col = index % 8;
+                      x = 400 + (col * 120);
+                      y = 300 + (row * 100);
                   }
 
                   const isHQ = city.name.toLowerCase().includes('bengaluru') || city.name.toLowerCase().includes('bangalore');
                   
                   return (
                     <g key={city.name}>
-                      {/* City constellation node */}
                       <g 
                         className="cursor-pointer"
                         onClick={() => handleCityClick(city)}
@@ -917,20 +863,22 @@ export default function CautioDashboard() {
                         <circle
                           cx={x}
                           cy={y}
-                          r={isHQ ? 40 : Math.max(18, Math.min(30, city.count * 3))}
+                          r={isHQ ? 45 : Math.max(20, Math.min(35, city.count * 3))}
                           fill="none"
                           stroke={selectedCity === city.name ? "#ff6b9d" : isHQ ? "#00ff88" : "#64b5f6"}
-                          strokeWidth="2"
-                          opacity="0.6"
+                          strokeWidth="3"
+                          opacity="0.8"
                           className={isHQ ? "animate-ping" : ""}
                         />
                         
-                        {/* Main city star */}
+                        {/* Main city circle */}
                         <circle
                           cx={x}
                           cy={y}
-                          r={isHQ ? 20 : Math.max(10, Math.min(18, city.count * 2))}
+                          r={isHQ ? 22 : Math.max(12, Math.min(20, city.count * 2))}
                           fill={selectedCity === city.name ? "#ff6b9d" : isHQ ? "#00ff88" : "#64b5f6"}
+                          stroke="#ffffff"
+                          strokeWidth="3"
                           filter="url(#cityGlow)"
                           className={isHQ ? "animate-pulse" : ""}
                         />
@@ -938,31 +886,30 @@ export default function CautioDashboard() {
                         {/* Response count */}
                         <text
                           x={x}
-                          y={y + 5}
+                          y={y + 6}
                           textAnchor="middle"
-                          className="fill-black text-sm font-bold pointer-events-none"
+                          className="fill-black text-base font-bold pointer-events-none"
                         >
                           {city.count}
                         </text>
                         
-                        {/* City name with clear background */}
+                        {/* City name with background */}
                         <g>
-                          {/* Background for text readability */}
                           <rect
-                            x={x - (city.name.length * 4)}
-                            y={y - (isHQ ? 20 : Math.max(10, Math.min(18, city.count * 2))) - 25}
-                            width={city.name.length * 8}
-                            height="16"
-                            fill="rgba(0,0,0,0.7)"
-                            rx="3"
+                            x={x - (city.name.length * 5)}
+                            y={y - (isHQ ? 22 : Math.max(12, Math.min(20, city.count * 2))) - 28}
+                            width={city.name.length * 10}
+                            height="18"
+                            fill="rgba(0,0,0,0.8)"
+                            rx="4"
                           />
                           <text
                             x={x}
-                            y={y - (isHQ ? 20 : Math.max(10, Math.min(18, city.count * 2))) - 12}
+                            y={y - (isHQ ? 22 : Math.max(12, Math.min(20, city.count * 2))) - 14}
                             textAnchor="middle"
-                            className={`text-sm font-bold pointer-events-none ${
-                              selectedCity === city.name ? 'fill-pink-300' : 
-                              isHQ ? 'fill-green-300' : 'fill-cyan-300'
+                            className={`text-base font-bold pointer-events-none ${
+                              selectedCity === city.name ? 'fill-pink-200' : 
+                              isHQ ? 'fill-green-200' : 'fill-cyan-200'
                             }`}
                           >
                             {city.name}
@@ -972,23 +919,33 @@ export default function CautioDashboard() {
                         {/* Percentage */}
                         <text
                           x={x}
-                          y={y + (isHQ ? 20 : Math.max(10, Math.min(18, city.count * 2))) + 18}
+                          y={y + (isHQ ? 22 : Math.max(12, Math.min(20, city.count * 2))) + 20}
                           textAnchor="middle"
-                          className="fill-gray-300 text-xs font-bold pointer-events-none"
+                          className="fill-white text-sm font-bold pointer-events-none"
                         >
                           {city.percentage}%
                         </text>
                         
                         {/* HQ indicator */}
                         {isHQ && (
-                          <text
-                            x={x}
-                            y={y - 50}
-                            textAnchor="middle"
-                            className="fill-green-200 text-sm font-bold pointer-events-none"
-                          >
-                            HQ
-                          </text>
+                          <g>
+                            <rect
+                              x={x - 15}
+                              y={y - 55}
+                              width="30"
+                              height="12"
+                              fill="rgba(0,0,0,0.8)"
+                              rx="3"
+                            />
+                            <text
+                              x={x}
+                              y={y - 46}
+                              textAnchor="middle"
+                              className="fill-green-200 text-xs font-bold pointer-events-none"
+                            >
+                              HQ
+                            </text>
+                          </g>
                         )}
                       </g>
                     </g>
