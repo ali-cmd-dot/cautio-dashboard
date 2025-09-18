@@ -756,7 +756,7 @@ export default function CautioDashboard() {
             />
           </div>
 
-          {/* SIMPLE BACKGROUND IMAGE ONLY */}
+          {/* SIMPLE MAP WITH BACKGROUND IMAGE */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-6 flex items-center">
               <Globe className="h-7 w-7 mr-3 text-blue-600" />
@@ -764,13 +764,12 @@ export default function CautioDashboard() {
             </h3>
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
               <p className="text-sm text-blue-700 font-medium">
-                India Map: Total responses: {dashboardData.totalResponses}
+                India Map - Total responses: {dashboardData.totalResponses}
               </p>
             </div>
             
-            {/* JUST THE BACKGROUND IMAGE */}
             <div 
-              className="relative w-full h-[1200px] rounded-xl overflow-hidden"
+              className="relative w-full h-[800px] rounded-xl"
               style={{
                 backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/6/68/India_78.40398E_20.74980N.jpg')`,
                 backgroundSize: 'contain',
