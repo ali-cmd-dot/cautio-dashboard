@@ -53,6 +53,7 @@ export default function CautioDashboard() {
       /^\d+\s*$/,
       /^Fast\s+hgfajjgvbjew/i, // Specific gibberish pattern
       /^Ch\s+dhhd\s+hdhvbdhh/i, // Specific gibberish pattern
+      /hgfajjgvbjevv/i, // Specific gibberish pattern
       /^Bbdnbdh\s+de\s+djndbvf/i, // Specific gibberish pattern
       /^\*{15,}/, // Only long asterisk strings (15+)
     ];
