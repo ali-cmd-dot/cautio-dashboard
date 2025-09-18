@@ -41,7 +41,7 @@ export default function CautioDashboard() {
     // Must be at least 8 characters
     if (cleanQuery.length < 8) return false;
     
-    // Block obvious system/test data
+    // Only block very specific gibberish patterns you mentioned
     const invalidPatterns = [
       /^test\s*$/i,
       /^testing\s*$/i,
@@ -51,27 +51,20 @@ export default function CautioDashboard() {
       /^Private\s*$/i,
       /^English\s*$/i,
       /^\d+\s*$/,
-      /^[b-z]{3,}\s+[a-z]{2,}\s+[a-z]{3,}/i, // Pattern like "Bbdnbdh de djndbvf"
-      /^\*{10,}/, // Multiple asterisks
-      /^[^aeiou\s]{6,}/i, // Too many consonants without vowels (gibberish)
-      /^Fast\s+hgfajjgvbjew/i, // Specific pattern from screenshot
-      /^Ch\s+dhhd\s+hdhvbdhh/i, // Another specific pattern
+      /^Fast\s+hgfajjgvbjew/i, // Specific gibberish pattern
+      /^Ch\s+dhhd\s+hdhvbdhh/i, // Specific gibberish pattern
+      /^Bbdnbdh\s+de\s+djndbvf/i, // Specific gibberish pattern
+      /^\*{15,}/, // Only long asterisk strings (15+)
     ];
     
-    // Block queries that are mostly consonants (gibberish detection)
-    const vowels = (cleanQuery.match(/[aeiou]/gi) || []).length;
-    const consonants = (cleanQuery.match(/[bcdfghjklmnpqrstvwxyz]/gi) || []).length;
-    if (consonants > vowels * 3 && consonants > 10) {
-      return false;
-    }
-    
-    // Only reject clear system/gibberish data
+    // Only reject clear system/gibberish data - be very permissive for real queries
     for (const pattern of invalidPatterns) {
       if (pattern.test(cleanQuery)) {
         return false;
       }
     }
     
+    // Accept everything else - keep all real customer queries
     return true;
   };
 
