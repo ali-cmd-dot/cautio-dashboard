@@ -756,7 +756,7 @@ export default function CautioDashboard() {
             />
           </div>
 
-          {/* REAL INDIA SATELLITE MAP */}
+          {/* SIMPLE BACKGROUND IMAGE ONLY */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-6 flex items-center">
               <Globe className="h-7 w-7 mr-3 text-blue-600" />
@@ -764,200 +764,22 @@ export default function CautioDashboard() {
             </h3>
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
               <p className="text-sm text-blue-700 font-medium">
-                🇮🇳 Real India Map: Customer response cities with accurate geographic positioning. Total responses: {dashboardData.totalResponses}
+                India Map: Total responses: {dashboardData.totalResponses}
               </p>
             </div>
             
-            {/* REAL INDIA SATELLITE MAP */}
+            {/* JUST THE BACKGROUND IMAGE */}
             <div 
               className="relative w-full h-[1200px] rounded-xl overflow-hidden"
               style={{
-                backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/India_78.40398E_20.74980N.jpg/1280px-India_78.40398E_20.74980N.jpg')`,
-                backgroundSize: 'cover',
+                backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/6/68/India_78.40398E_20.74980N.jpg')`,
+                backgroundSize: 'contain',
                 backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
+                backgroundRepeat: 'no-repeat',
+                backgroundColor: '#f0f0f0'
               }}
             >
-              
-              {/* Semi-transparent overlay for better city visibility */}
-              <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-              
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1600 1200">
-                <defs>
-                  <filter id="cityGlow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge> 
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-
-                {/* Customer Response Cities - Accurate Geographic Positioning */}
-                {dashboardData.allCities && dashboardData.allCities.map((city, index) => {
-                  let x = 800, y = 600; // Default center position
-                  
-                  // Accurate positioning based on real India satellite map coordinates
-                  switch(city.name.toLowerCase()) {
-                    case 'bengaluru':
-                    case 'bangalore':
-                      x = 900; y = 800; break;
-                    case 'mumbai':
-                      x = 650; y = 650; break;
-                    case 'delhi':
-                    case 'new delhi':
-                      x = 750; y = 350; break;
-                    case 'hyderabad':
-                      x = 890; y = 720; break;
-                    case 'chennai':
-                      x = 950; y = 820; break;
-                    case 'kolkata':
-                      x = 1100; y = 550; break;
-                    case 'pune':
-                      x = 690; y = 650; break;
-                    case 'ahmedabad':
-                      x = 600; y = 520; break;
-                    case 'surat':
-                      x = 620; y = 580; break;
-                    case 'jaipur':
-                      x = 700; y = 400; break;
-                    case 'lucknow':
-                      x = 850; y = 450; break;
-                    case 'kanpur':
-                      x = 820; y = 470; break;
-                    case 'nagpur':
-                      x = 830; y = 600; break;
-                    case 'indore':
-                      x = 750; y = 550; break;
-                    case 'bhopal':
-                      x = 770; y = 520; break;
-                    case 'visakhapatnam':
-                      x = 980; y = 720; break;
-                    case 'patna':
-                      x = 960; y = 500; break;
-                    case 'kochi':
-                      x = 820; y = 900; break;
-                    case 'coimbatore':
-                      x = 880; y = 870; break;
-                    case 'thane':
-                      x = 660; y = 660; break;
-                    case 'pimpri':
-                      x = 700; y = 660; break;
-                    default:
-                      // Position other cities within India map bounds
-                      const row = Math.floor(index / 8);
-                      const col = index % 8;
-                      x = 600 + (col * 80);
-                      y = 400 + (row * 80);
-                  }
-
-                  const isHQ = city.name.toLowerCase().includes('bengaluru') || city.name.toLowerCase().includes('bangalore');
-                  
-                  return (
-                    <g key={city.name}>
-                      <g 
-                        className="cursor-pointer"
-                        onClick={() => handleCityClick(city)}
-                      >
-                        {/* Outer glow ring */}
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={isHQ ? 50 : Math.max(25, Math.min(40, city.count * 4))}
-                          fill="none"
-                          stroke={selectedCity === city.name ? "#ff1744" : isHQ ? "#00e676" : "#2196f3"}
-                          strokeWidth="4"
-                          opacity="0.8"
-                          className={isHQ ? "animate-ping" : ""}
-                        />
-                        
-                        {/* Main city circle */}
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={isHQ ? 25 : Math.max(15, Math.min(25, city.count * 2.5))}
-                          fill={selectedCity === city.name ? "#ff1744" : isHQ ? "#00e676" : "#2196f3"}
-                          stroke="#ffffff"
-                          strokeWidth="4"
-                          filter="url(#cityGlow)"
-                          className={isHQ ? "animate-pulse" : ""}
-                        />
-                        
-                        {/* Response count */}
-                        <text
-                          x={x}
-                          y={y + 7}
-                          textAnchor="middle"
-                          className="fill-white text-lg font-bold pointer-events-none"
-                          style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
-                        >
-                          {city.count}
-                        </text>
-                        
-                        {/* City name with strong background */}
-                        <g>
-                          <rect
-                            x={x - (city.name.length * 6)}
-                            y={y - (isHQ ? 25 : Math.max(15, Math.min(25, city.count * 2.5))) - 32}
-                            width={city.name.length * 12}
-                            height="20"
-                            fill="rgba(0,0,0,0.9)"
-                            stroke="#ffffff"
-                            strokeWidth="1"
-                            rx="5"
-                          />
-                          <text
-                            x={x}
-                            y={y - (isHQ ? 25 : Math.max(15, Math.min(25, city.count * 2.5))) - 16}
-                            textAnchor="middle"
-                            className={`text-lg font-bold pointer-events-none ${
-                              selectedCity === city.name ? 'fill-red-200' : 
-                              isHQ ? 'fill-green-200' : 'fill-blue-200'
-                            }`}
-                          >
-                            {city.name}
-                          </text>
-                        </g>
-                        
-                        {/* Percentage */}
-                        <text
-                          x={x}
-                          y={y + (isHQ ? 25 : Math.max(15, Math.min(25, city.count * 2.5))) + 25}
-                          textAnchor="middle"
-                          className="fill-white text-base font-bold pointer-events-none"
-                          style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
-                        >
-                          {city.percentage}%
-                        </text>
-                        
-                        {/* HQ indicator */}
-                        {isHQ && (
-                          <g>
-                            <rect
-                              x={x - 20}
-                              y={y - 60}
-                              width="40"
-                              height="16"
-                              fill="rgba(0,0,0,0.9)"
-                              stroke="#00e676"
-                              strokeWidth="2"
-                              rx="4"
-                            />
-                            <text
-                              x={x}
-                              y={y - 48}
-                              textAnchor="middle"
-                              className="fill-green-200 text-sm font-bold pointer-events-none"
-                            >
-                              HQ
-                            </text>
-                          </g>
-                        )}
-                      </g>
-                    </g>
-                  );
-                })}
-              </svg>
+            </div>
               
               {/* Enhanced Legend */}
               <div className="absolute bottom-8 right-8 bg-slate-900 bg-opacity-95 p-6 rounded-xl text-white border border-cyan-400">
