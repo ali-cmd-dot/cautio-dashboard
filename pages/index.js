@@ -14,10 +14,8 @@ export default function CautioDashboard() {
   const [selectedQuery, setSelectedQuery] = useState('');
   const leadsPerPage = 20;
 
-  // Sheet configuration
   const sourceSheetId = '1nQgbSdaZcwjPKciPCb_UW-J1iSBAVVMc8vEsSme2ip8';
 
-  // Enhanced fake email detection
   const isFakeEmail = (email) => {
     const cleanEmail = (email || '').trim().toLowerCase().replace(/"/g, '');
     const fakeEmails = [
@@ -28,28 +26,20 @@ export default function CautioDashboard() {
       'rohit@cautio.in'
     ];
     
-    // Check against known fake emails
     if (fakeEmails.includes(cleanEmail)) return true;
-    
-    // Check for test patterns
     if (cleanEmail.includes('test') || cleanEmail.includes('fake') || cleanEmail.includes('spam')) return true;
-    
-    // Check for empty or invalid format
     if (!cleanEmail || cleanEmail === '' || !cleanEmail.includes('@')) return true;
     
     return false;
   };
 
-  // Simple and permissive query validation - accept most real queries
   const isValidQuery = (query) => {
     if (!query || typeof query !== 'string') return false;
     
     const cleanQuery = query.trim();
     
-    // Must be at least 8 characters
     if (cleanQuery.length < 8) return false;
     
-    // Only block obvious system/test data - be very permissive
     const invalidPatterns = [
       /^test\s*$/i,
       /^testing\s*$/i,
@@ -61,23 +51,19 @@ export default function CautioDashboard() {
       /^\d+\s*$/,
     ];
     
-    // Only reject clear system data
     for (const pattern of invalidPatterns) {
       if (pattern.test(cleanQuery)) {
         return false;
       }
     }
     
-    // Accept everything else - very permissive
     return true;
   };
 
-  // Enhanced date parsing
   const parseDate = (dateString) => {
     if (!dateString || dateString === 'N/A') return null;
     
     try {
-      // Handle MM/DD/YYYY format common in sheets
       if (dateString.includes('/')) {
         const parts = dateString.split('/');
         if (parts.length === 3) {
@@ -88,7 +74,6 @@ export default function CautioDashboard() {
         }
       }
       
-      // Handle other formats
       const date = new Date(dateString);
       return isNaN(date.getTime()) ? null : date;
     } catch (error) {
@@ -96,7 +81,6 @@ export default function CautioDashboard() {
     }
   };
 
-  // Format date function
   const formatDate = (dateInput) => {
     if (!dateInput) return 'N/A';
     
@@ -109,7 +93,6 @@ export default function CautioDashboard() {
     return `${day}-${month}-${year}`;
   };
 
-  // India cities with coordinates for better map visualization
   const cityCoordinates = {
     'Bengaluru': { lat: 12.9716, lng: 77.5946, region: 'South' },
     'Bangalore': { lat: 12.9716, lng: 77.5946, region: 'South' },
@@ -133,13 +116,11 @@ export default function CautioDashboard() {
     'Patna': { lat: 25.5941, lng: 85.1376, region: 'East' }
   };
 
-  // Analyze data function
   const analyzeData = (rawData) => {
     const totalResponses = rawData.length;
     
     console.log('📊 Analyzing', totalResponses, 'responses after filtering');
     
-    // Enhanced city analysis with proper total counting
     const cityCount = {};
     const totalResponsesWithValidCities = rawData.filter(row => {
       const city = (row.city || '').trim();
@@ -156,14 +137,13 @@ export default function CautioDashboard() {
       cityCount[city] = (cityCount[city] || 0) + 1;
     });
 
-    // Create city data with coordinates - only include cities with valid data
     const cityData = [];
     Object.entries(cityCount).forEach(([city, count]) => {
       const coords = cityCoordinates[city] || { lat: 20 + Math.random() * 10, lng: 75 + Math.random() * 10, region: 'Other' };
       cityData.push({
         name: city,
         count,
-        percentage: Math.round((count / totalResponses) * 100), // Use total responses for percentage
+        percentage: Math.round((count / totalResponses) * 100),
         lat: coords.lat,
         lng: coords.lng,
         region: coords.region,
@@ -177,7 +157,6 @@ export default function CautioDashboard() {
 
     const allCities = cityData.sort((a, b) => b.count - a.count);
 
-    // Add summary for responses without city data
     const responsesWithoutCity = totalResponses - totalResponsesWithValidCities.length;
     if (responsesWithoutCity > 0) {
       topCities.push({
@@ -191,7 +170,6 @@ export default function CautioDashboard() {
       });
     }
 
-    // Country analysis
     const countryCount = {};
     rawData.forEach(row => {
       const country = row.country || '';
@@ -210,7 +188,6 @@ export default function CautioDashboard() {
             name === 'USA' ? '🇺🇸' : name === 'Canada' ? '🇨🇦' : name === 'United Kingdom' ? '🇬🇧' : '🏳️'
     }));
 
-    // Enhanced query analysis with better categorization
     const queryCategories = {
       'Purchase Inquiry': ['buy', 'purchase', 'price', 'dashcam', 'dash cam', 'cost', 'order', 'enquire', 'inquiry', 'interested', 'single unit', 'looking to buy', 'required', 'need dashcam', 'want to buy', 'looking for', 'personal use'],
       'Business Partnership': ['partnership', 'business', 'collaboration', 'distribution', 'dealer', 'distributor', 'franchise', 'exhibiting', 'rental', 'fleet', 'platform'],
@@ -244,16 +221,13 @@ export default function CautioDashboard() {
       }
     });
 
-    // Calculate percentages
     queryTypes.forEach(qt => {
       qt.percentage = totalResponses > 0 ? Math.round((qt.count / totalResponses) * 100) : 0;
     });
 
-    // Enhanced monthly analysis with proper date handling
     const monthlyData = {};
     const now = new Date();
     
-    // Initialize last 12 months
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -265,7 +239,6 @@ export default function CautioDashboard() {
       };
     }
     
-    // Count responses by month
     rawData.forEach(row => {
       const date = parseDate(row.timestamp);
       if (date && !isNaN(date.getTime())) {
@@ -278,7 +251,6 @@ export default function CautioDashboard() {
 
     const monthlyTrend = Object.values(monthlyData).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 
-    // Enhanced customer leads with better validation and sorting
     const allLeads = rawData
       .filter(row => isValidQuery(row.query))
       .map(row => {
@@ -292,7 +264,7 @@ export default function CautioDashboard() {
           city: row.city || 'N/A',
           date: formatDate(timestamp),
           timestamp: timestamp,
-          sortDate: timestamp.getTime(), // For sorting
+          sortDate: timestamp.getTime(),
           queryType: (() => {
             const query = (row.query || '').toLowerCase();
             for (const [category, keywords] of Object.entries(queryCategories)) {
@@ -304,7 +276,7 @@ export default function CautioDashboard() {
           })()
         };
       })
-      .sort((a, b) => b.sortDate - a.sortDate); // Latest first
+      .sort((a, b) => b.sortDate - a.sortDate);
 
     console.log('✅ Analysis complete:');
     console.log('- Valid customer responses:', allLeads.length);
@@ -335,7 +307,6 @@ export default function CautioDashboard() {
     };
   };
 
-  // Enhanced CSV parsing
   const parseCSVRow = (csvRow) => {
     const result = [];
     let current = '';
@@ -359,7 +330,6 @@ export default function CautioDashboard() {
     return result;
   };
 
-  // Fetch data from Google Sheets
   const fetchLiveData = async () => {
     setLoading(true);
     try {
@@ -380,7 +350,6 @@ export default function CautioDashboard() {
         throw new Error('No data found in sheet');
       }
       
-      // Parse headers
       const headers = parseCSVRow(lines[0]).map(h => h.toLowerCase().trim());
       console.log('📋 Headers detected:', headers);
       
@@ -413,12 +382,10 @@ export default function CautioDashboard() {
           row[mappedHeader] = values[index] || '';
         });
         
-        // Much simpler validation - only skip obvious invalid data
         const name = (row.name || '').trim();
         const email = (row.email || '').trim();
         const query = (row.query || '').trim();
         
-        // Skip only clear invalid entries
         if (!name || name.length <= 2 || name.toLowerCase() === 'name') continue;
         if (isFakeEmail(email)) continue;
         if (!isValidQuery(query)) {
@@ -426,7 +393,6 @@ export default function CautioDashboard() {
           continue;
         }
         
-        // Clean up data
         row.name = name;
         row.email = email;
         row.query = query;
@@ -453,7 +419,6 @@ export default function CautioDashboard() {
     } catch (error) {
       console.error('❌ Error:', error);
       
-      // Demo data with proper structure
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       
@@ -516,19 +481,16 @@ export default function CautioDashboard() {
     setLoading(false);
   };
 
-  // Load data on mount
   useEffect(() => {
     fetchLiveData();
     const interval = setInterval(fetchLiveData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedQueryType, selectedCity]);
 
-  // Enhanced StatCard component
   const StatCard = ({ icon: Icon, title, value, subtitle, onClick, clickable = false, description, isActive = false }) => (
     <div 
       className={`bg-white p-6 rounded-xl shadow-lg border-l-4 transition-all duration-300 ${
@@ -558,7 +520,6 @@ export default function CautioDashboard() {
     </div>
   );
 
-  // Event handlers
   const handleQueryTypeClick = (queryType) => {
     setSelectedQueryType(selectedQueryType === queryType.type ? null : queryType.type);
   };
@@ -589,7 +550,6 @@ export default function CautioDashboard() {
     setShowQueryModal(true);
   };
 
-  // Enhanced Query Modal
   const QueryModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
@@ -643,7 +603,6 @@ export default function CautioDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
-      {/* Enhanced Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
@@ -669,7 +628,6 @@ export default function CautioDashboard() {
         )}
       </div>
 
-      {/* Enhanced Tabs */}
       <div className="mb-8">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
@@ -690,7 +648,6 @@ export default function CautioDashboard() {
         </div>
       </div>
 
-      {/* Enhanced Filters */}
       {(selectedQueryType || selectedCity) && (
         <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-md">
           <div className="flex items-center justify-between">
@@ -722,7 +679,6 @@ export default function CautioDashboard() {
 
       {activeTab === 'overview' && (
         <div className="space-y-8">
-          {/* Enhanced Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               icon={Users} 
@@ -756,7 +712,6 @@ export default function CautioDashboard() {
             />
           </div>
 
-          {/* India Map Section */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-6 flex items-center">
               <Globe className="h-7 w-7 mr-3 text-blue-600" />
@@ -764,7 +719,7 @@ export default function CautioDashboard() {
             </h3>
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
               <p className="text-sm text-blue-700 font-medium">
-                India Map - Total responses: {dashboardData.totalResponses}
+                🇮🇳 India Map - Total responses: {dashboardData.totalResponses}
               </p>
             </div>
             <div 
@@ -779,42 +734,7 @@ export default function CautioDashboard() {
             >
             </div>
           </div>
-              
-              {/* Enhanced Legend */}
-              <div className="absolute bottom-8 right-8 bg-slate-900 bg-opacity-95 p-6 rounded-xl text-white border border-cyan-400">
-                <h4 className="text-lg font-bold mb-4 text-cyan-300">India Network Legend</h4>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
-                    <span>HQ - Bangalore</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 bg-cyan-400 rounded-full border border-white"></div>
-                    <span>Response cities</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 bg-pink-400 rounded-full border border-white"></div>
-                    <span>Selected city</span>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="text-sm text-cyan-300 font-bold">
-                    Total: {dashboardData.totalResponses} responses
-                  </div>
-                </div>
-              </div>
-              
-              {/* Instructions */}
-              <div className="absolute top-8 left-8 bg-slate-900 bg-opacity-95 p-6 rounded-xl text-white border border-green-400">
-                <p className="text-lg font-bold text-green-300">🇮🇳 Clean India Network</p>
-                <p className="text-sm text-gray-300 mt-2">Large clean map - no state boundaries</p>
-                <p className="text-sm text-cyan-300 mt-1">Click any city to filter responses</p>
-                <p className="text-xs text-yellow-300 mt-1">All city names clearly visible</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Enhanced Monthly Trends */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold flex items-center">
@@ -875,7 +795,6 @@ export default function CautioDashboard() {
               </AreaChart>
             </ResponsiveContainer>
 
-            {/* Monthly Stats */}
             <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 p-4 rounded-xl text-center border-2 border-blue-200">
                 <div className="font-bold text-blue-600 mb-1">Total (12 months)</div>
@@ -908,7 +827,6 @@ export default function CautioDashboard() {
             </div>
           </div>
 
-          {/* Enhanced Customer Leads Table */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             <div className="p-8 border-b bg-gradient-to-r from-gray-50 to-blue-50">
               <h3 className="text-2xl font-bold flex items-center">
@@ -1015,7 +933,6 @@ export default function CautioDashboard() {
               </table>
             </div>
             
-            {/* Enhanced Pagination */}
             {(() => {
               const filteredLeads = dashboardData.recentLeads.filter(lead => 
                 (!selectedCity || lead.city === selectedCity) &&
@@ -1078,14 +995,12 @@ export default function CautioDashboard() {
 
       {activeTab === 'all-cities' && (
         <div className="space-y-8">
-          {/* Enhanced All Cities Analysis */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-8 flex items-center">
               <MapPin className="h-7 w-7 mr-3 text-blue-600" />
               Complete Geographic Analysis - {dashboardData.allCities.length} Cities Covered
             </h3>
             
-            {/* Cities Grid with enhanced styling */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
               {dashboardData.allCities.map((city, index) => (
                 <div 
@@ -1121,7 +1036,6 @@ export default function CautioDashboard() {
               ))}
             </div>
 
-            {/* Enhanced Cities Bar Chart */}
             <div className="mt-12">
               <h4 className="text-xl font-bold mb-6">Complete Geographic Distribution</h4>
               <ResponsiveContainer width="100%" height={600}>
@@ -1167,7 +1081,6 @@ export default function CautioDashboard() {
               </ResponsiveContainer>
             </div>
 
-            {/* Enhanced City Statistics */}
             <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="bg-blue-50 p-6 rounded-xl text-center border-2 border-blue-200 shadow-md">
                 <div className="font-bold text-blue-600 mb-2 text-lg">Total Cities</div>
@@ -1200,7 +1113,6 @@ export default function CautioDashboard() {
 
       {activeTab === 'insights' && (
         <div className="space-y-8">
-          {/* Enhanced Key Insights */}
           <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
             <h3 className="text-2xl font-bold mb-6">💡 Strategic Business Insights</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1215,7 +1127,6 @@ export default function CautioDashboard() {
         </div>
       )}
 
-      {/* Enhanced Query Modal */}
       {showQueryModal && <QueryModal />}
     </div>
   );
