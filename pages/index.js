@@ -294,7 +294,7 @@ export default function CautioDashboard() {
     return {
       totalResponses: allLeads.length,
       originalTotal: totalResponses,
-      timeRange: `Live Customer Analytics Dashboard (${allLeads.length} verified responses)`,
+      timeRange: `Live Analytics (${allLeads.length} verified responses)`,
       topCities,
       allCities,
       cityMapData: cityData,
@@ -615,7 +615,7 @@ export default function CautioDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Cautio Analytics Dashboard
+              Cautio Website Reached
             </h1>
             <p className="text-gray-600 text-xl">{dashboardData.timeRange}</p>
           </div>
