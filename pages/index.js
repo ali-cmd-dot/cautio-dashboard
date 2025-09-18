@@ -41,8 +41,8 @@ export default function CautioDashboard() {
     // Must be at least 8 characters
     if (cleanQuery.length < 8) return false;
     
-    // Only block very specific gibberish patterns you mentioned
-    const invalidPatterns = [
+    // Basic invalid patterns
+    const basicInvalidPatterns = [
       /^test\s*$/i,
       /^testing\s*$/i,
       /^hello\s*$/i,
@@ -51,22 +51,70 @@ export default function CautioDashboard() {
       /^Private\s*$/i,
       /^English\s*$/i,
       /^\d+\s*$/,
-      /^Fast\s+hgfajjgvbjew/i, // Specific gibberish pattern
-      /^Ch\s+dhhd\s+hdhvbdhh/i, // Specific gibberish pattern
-      /hgfajjgvbjevv/i, // Specific gibberish pattern
-      /^Bbdnbdh\s+de\s+djndbvf/i, // Specific gibberish pattern
-      /^\*{15,}/, // Only long asterisk strings (15+)
+      /^\*{15,}/, // Long asterisk strings
     ];
     
-    // Only reject clear system/gibberish data - be very permissive for real queries
-    for (const pattern of invalidPatterns) {
+    // Check basic patterns first
+    for (const pattern of basicInvalidPatterns) {
       if (pattern.test(cleanQuery)) {
         return false;
       }
     }
     
-    // Accept everything else - keep all real customer queries
-    return true;
+    // SMART GIBBERISH DETECTION
+    const lowerQuery = cleanQuery.toLowerCase();
+    
+    // 1. Check for repeated character patterns (like "yyy", "lalal")
+    if (/(.)\1{4,}/.test(lowerQuery)) return false; // 5+ same characters in a row
+    
+    // 2. Check for repeated short sequences (like "queryquery")
+    if (/(.{2,4})\1{3,}/.test(lowerQuery)) return false; // Same 2-4 chars repeated 3+ times
+    
+    // 3. Check for too many consonants without vowels (gibberish detection)
+    const words = lowerQuery.split(/\s+/);
+    for (const word of words) {
+      if (word.length > 6) {
+        const vowels = (word.match(/[aeiou]/g) || []).length;
+        const consonants = (word.match(/[bcdfghjklmnpqrstvwxyz]/g) || []).length;
+        
+        // If word has 8+ consonants and very few vowels, it's likely gibberish
+        if (consonants >= 8 && vowels <= 2) return false;
+        
+        // If consonant to vowel ratio is too high (more than 4:1), likely gibberish
+        if (consonants > vowels * 4 && consonants > 6) return false;
+      }
+    }
+    
+    // 4. Check for random letter clusters (no real English patterns)
+    const suspiciousPatterns = [
+      /[bcdfghjklmnpqrstvwxyz]{6,}/i, // 6+ consonants in a row
+      /^[qwrtpyudfghjklzxcvbnm]+$/i, // Only uncommon letters
+    ];
+    
+    for (const word of words) {
+      if (word.length > 6) {
+        for (const pattern of suspiciousPatterns) {
+          if (pattern.test(word)) return false;
+        }
+      }
+    }
+    
+    // 5. Check for obvious keyboard mashing patterns
+    const keyboardRows = [
+      'qwertyuiop',
+      'asdfghjkl',
+      'zxcvbnm'
+    ];
+    
+    for (const row of keyboardRows) {
+      // Check for 5+ consecutive keys from same row
+      for (let i = 0; i <= row.length - 5; i++) {
+        const sequence = row.substring(i, i + 5);
+        if (lowerQuery.includes(sequence)) return false;
+      }
+    }
+    
+    return true; // Passed all gibberish checks
   };
 
   const parseDate = (dateString) => {
@@ -295,7 +343,7 @@ export default function CautioDashboard() {
     return {
       totalResponses: allLeads.length,
       originalTotal: totalResponses,
-      timeRange: `Live Analytics (${allLeads.length} verified responses)`,
+      timeRange: `Live Customer Analytics Dashboard (${allLeads.length} verified responses)`,
       topCities,
       allCities,
       cityMapData: cityData,
@@ -616,7 +664,7 @@ export default function CautioDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              Cautio Website Reached
+              Cautio Analytics Dashboard
             </h1>
             <p className="text-gray-600 text-xl">{dashboardData.timeRange}</p>
           </div>
