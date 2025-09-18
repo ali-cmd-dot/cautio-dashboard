@@ -780,6 +780,7 @@ export default function CautioDashboard() {
               }}
             >
             </div>
+          </div>
               
               {/* Enhanced Legend */}
               <div className="absolute bottom-8 right-8 bg-slate-900 bg-opacity-95 p-6 rounded-xl text-white border border-cyan-400">
