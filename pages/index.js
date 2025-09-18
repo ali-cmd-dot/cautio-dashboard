@@ -38,8 +38,10 @@ export default function CautioDashboard() {
     
     const cleanQuery = query.trim();
     
+    // Must be at least 8 characters
     if (cleanQuery.length < 8) return false;
     
+    // Block obvious system/test data
     const invalidPatterns = [
       /^test\s*$/i,
       /^testing\s*$/i,
@@ -49,8 +51,21 @@ export default function CautioDashboard() {
       /^Private\s*$/i,
       /^English\s*$/i,
       /^\d+\s*$/,
+      /^[b-z]{3,}\s+[a-z]{2,}\s+[a-z]{3,}/i, // Pattern like "Bbdnbdh de djndbvf"
+      /^\*{10,}/, // Multiple asterisks
+      /^[^aeiou\s]{6,}/i, // Too many consonants without vowels (gibberish)
+      /^Fast\s+hgfajjgvbjew/i, // Specific pattern from screenshot
+      /^Ch\s+dhhd\s+hdhvbdhh/i, // Another specific pattern
     ];
     
+    // Block queries that are mostly consonants (gibberish detection)
+    const vowels = (cleanQuery.match(/[aeiou]/gi) || []).length;
+    const consonants = (cleanQuery.match(/[bcdfghjklmnpqrstvwxyz]/gi) || []).length;
+    if (consonants > vowels * 3 && consonants > 10) {
+      return false;
+    }
+    
+    // Only reject clear system/gibberish data
     for (const pattern of invalidPatterns) {
       if (pattern.test(cleanQuery)) {
         return false;
@@ -792,9 +807,21 @@ export default function CautioDashboard() {
               <div className="bg-purple-50 p-4 rounded-xl text-center border-2 border-purple-200">
                 <div className="font-bold text-purple-600 mb-1">Peak Month</div>
                 <div className="text-2xl font-bold text-purple-800">
-                  {Math.max(...dashboardData.monthlyTrend.map(m => m.responses))}
+                  {(() => {
+                    const peakMonth = dashboardData.monthlyTrend.reduce((prev, current) => 
+                      (prev.responses > current.responses) ? prev : current
+                    );
+                    return peakMonth.responses;
+                  })()}
                 </div>
-                <div className="text-xs text-purple-600">Highest responses</div>
+                <div className="text-xs text-purple-600">
+                  {(() => {
+                    const peakMonth = dashboardData.monthlyTrend.reduce((prev, current) => 
+                      (prev.responses > current.responses) ? prev : current
+                    );
+                    return peakMonth.month;
+                  })()}
+                </div>
               </div>
               <div className="bg-orange-50 p-4 rounded-xl text-center border-2 border-orange-200">
                 <div className="font-bold text-orange-600 mb-1">Monthly Average</div>
